@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings — Taskora</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+</head>
+<body>
+  <div class="app-container">
+    <div class="sidebar"></div>
+
+    <div class="main-content">
+      <header class="top-header">
+        <h2 style="font-size: 1.2rem; font-weight: 700;">Settings</h2>
+        <div class="user-profile-menu">
+          <span style="font-size: 0.9rem; font-weight: 600;" id="headerUserName">User</span>
+        </div>
+      </header>
+
+      <main class="page-container" style="max-width: 720px;">
+        <!-- Profile Settings -->
+        <div class="modal-container" style="max-width: 100%; margin-bottom: 1.5rem; transform: none;">
+          <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.25rem;">Account Profile</h3>
+          <form id="profileForm">
+            <div class="form-group">
+              <label class="form-label">Full Name</label>
+              <input type="text" id="settingsName" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email Address</label>
+              <input type="email" id="settingsEmail" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Update Profile</button>
+          </form>
+        </div>
+
+        <!-- WhatsApp Configuration -->
+        <div class="modal-container" style="max-width: 100%; margin-bottom: 1.5rem; transform: none;">
+          <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem;">WhatsApp Notifications</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+            Receive task reminders on WhatsApp via FrontDesk Agents API integration.
+          </p>
+
+          <form id="whatsappForm">
+            <div class="form-group">
+              <label class="form-label">WhatsApp Phone Number (with Country Code)</label>
+              <input type="text" id="settingsPhone" class="form-control" placeholder="+1234567890">
+            </div>
+            <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem;">
+              <input type="checkbox" id="settingsWaEnabled" style="width: 18px; height: 18px;">
+              <label for="settingsWaEnabled" class="form-label" style="margin-bottom:0;">Enable WhatsApp Reminders</label>
+            </div>
+            <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+              <button type="submit" class="btn btn-primary btn-sm">Save WhatsApp Preferences</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="testWaBtn">💬 Send Test Message</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Theme Preferences -->
+        <div class="modal-container" style="max-width: 100%; margin-bottom: 1.5rem; transform: none;">
+          <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.25rem;">Appearance & Theme</h3>
+          <div class="form-group">
+            <label class="form-label">Theme Mode</label>
+            <select id="settingsTheme" class="form-control">
+              <option value="system">System Default</option>
+              <option value="light">Light Mode</option>
+              <option value="dark">Dark Mode</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Password Change -->
+        <div class="modal-container" style="max-width: 100%; transform: none;">
+          <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.25rem;">Security</h3>
+          <form id="passwordForm">
+            <div class="form-group">
+              <label class="form-label">Current Password</label>
+              <input type="password" id="currentPass" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">New Password</label>
+              <input type="password" id="newPass" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-secondary btn-sm">Change Password</button>
+          </form>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/components/notification.js"></script>
+  <script src="/js/components/modal.js"></script>
+  <script src="/js/components/sidebar.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/settings.js"></script>
+</body>
+</html>

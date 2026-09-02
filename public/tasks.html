@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tasks — Taskora</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <style>
+    .filter-bar {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+      align-items: center;
+      background: var(--bg-surface);
+      padding: 1rem;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-color);
+    }
+    .view-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .tab-btn {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: var(--radius-md);
+      color: var(--text-muted);
+      background: transparent;
+      transition: var(--transition);
+    }
+    .tab-btn.active {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div class="sidebar"></div>
+
+    <div class="main-content">
+      <header class="top-header">
+        <h2 style="font-size: 1.2rem; font-weight: 700;">Task Management</h2>
+        <div class="user-profile-menu">
+          <button class="btn btn-primary btn-sm" id="quickAddTaskBtn">＋ Add Task</button>
+          <span style="font-size: 0.9rem; font-weight: 600;" id="headerUserName">User</span>
+        </div>
+      </header>
+
+      <main class="page-container">
+        <div class="view-tabs">
+          <button class="tab-btn active" data-view="all">All Tasks</button>
+          <button class="tab-btn" data-view="today">Today</button>
+          <button class="tab-btn" data-view="upcoming">Upcoming</button>
+          <button class="tab-btn" data-view="overdue">Overdue</button>
+          <button class="tab-btn" data-view="completed">Completed</button>
+        </div>
+
+        <div class="filter-bar">
+          <input type="text" id="searchInput" class="form-control" style="max-width: 240px;" placeholder="Search tasks...">
+
+          <select id="projectFilter" class="form-control" style="max-width: 180px;">
+            <option value="">All Projects</option>
+          </select>
+
+          <select id="priorityFilter" class="form-control" style="max-width: 150px;">
+            <option value="">All Priorities</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+          </select>
+
+          <select id="sortFilter" class="form-control" style="max-width: 160px; margin-left: auto;">
+            <option value="createdAt">Sort: Created Date</option>
+            <option value="dueDate">Sort: Due Date</option>
+            <option value="priority">Sort: Priority</option>
+            <option value="alphabetical">Sort: Title (A-Z)</option>
+          </select>
+        </div>
+
+        <div id="tasksListContainer">
+          <div style="color: var(--text-muted); padding: 1.5rem; text-align: center;">Loading tasks...</div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/components/notification.js"></script>
+  <script src="/js/components/modal.js"></script>
+  <script src="/js/components/sidebar.js"></script>
+  <script src="/js/components/task-card.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/tasks.js"></script>
+</body>
+</html>

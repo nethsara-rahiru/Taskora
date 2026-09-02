@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taskora — Fast, Simple Personal Task Management</title>
+  <meta name="description" content="Organize your daily tasks, projects, priorities, and WhatsApp reminders with Taskora.">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <style>
+    .hero-section {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(248, 250, 252, 1) 100%);
+    }
+    .hero-title {
+      font-size: 3.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+      line-height: 1.1;
+    }
+    .hero-subtitle {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin-bottom: 2rem;
+    }
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="hero-section">
+    <div style="font-size: 3rem; margin-bottom: 1rem;">⚡</div>
+    <h1 class="hero-title">Organize your tasks.<br>Boost your productivity.</h1>
+    <p class="hero-subtitle">Taskora is the clean, high-performance task manager designed for clarity, project organization, and timely reminders.</p>
+    <div class="hero-buttons">
+      <a href="/login.html" class="btn btn-secondary btn-lg">Sign In</a>
+      <a href="/register.html" class="btn btn-primary btn-lg">Get Started Free →</a>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script>
+    // Redirect if already logged in
+    Auth.getCurrentUser().then(user => {
+      if (user) window.location.href = '/dashboard.html';
+    });
+  </script>
+</body>
+</html>
