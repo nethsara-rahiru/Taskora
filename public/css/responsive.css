@@ -1,5 +1,8 @@
-@media (max-width: 992px) {
+@media (max-width: 1024px) {
   .dashboard-sections {
+    grid-template-columns: 1fr;
+  }
+  .kanban-board {
     grid-template-columns: 1fr;
   }
 }
@@ -7,28 +10,33 @@
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
-    left: -260px;
-  }
-  
-  .sidebar.open {
-    left: 0;
+    left: -270px;
     box-shadow: var(--shadow-xl);
   }
 
-  .top-header {
-    padding: 0 1rem;
+  .sidebar.open {
+    left: 0;
   }
 
-  .search-bar {
-    width: 180px;
+  .top-header {
+    padding: 0 1.25rem;
   }
 
   .page-container {
-    padding: 1rem;
+    padding: 1.25rem;
   }
 
   .form-row {
     flex-direction: column;
     gap: 0.5rem;
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-bar > * {
+    max-width: 100% !important;
   }
 }

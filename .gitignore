@@ -3,3 +3,4 @@ npm-cache/
 .env
 *.log
 .DS_Store
+atlas-credentials (2).env

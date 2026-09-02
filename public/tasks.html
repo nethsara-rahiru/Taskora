@@ -6,36 +6,62 @@
   <title>Tasks — Taskora</title>
   <link rel="stylesheet" href="/css/main.css">
   <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
   <link rel="stylesheet" href="/css/responsive.css">
   <style>
     .filter-bar {
       display: flex;
-      gap: 1rem;
+      gap: 0.85rem;
       flex-wrap: wrap;
       margin-bottom: 1.5rem;
       align-items: center;
       background: var(--bg-surface);
-      padding: 1rem;
-      border-radius: var(--radius-lg);
+      padding: 1rem 1.25rem;
+      border-radius: var(--radius-xl);
       border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-xs);
     }
     .view-tabs {
       display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1.25rem;
+      gap: 0.35rem;
+      margin-bottom: 1.5rem;
+      background: var(--bg-input);
+      padding: 0.35rem;
+      border-radius: var(--radius-md);
+      width: fit-content;
     }
     .tab-btn {
-      padding: 0.5rem 1rem;
-      font-size: 0.875rem;
-      font-weight: 600;
-      border-radius: var(--radius-md);
+      padding: 0.5rem 1.15rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border-radius: var(--radius-sm);
       color: var(--text-muted);
       background: transparent;
-      transition: var(--transition);
+      transition: var(--transition-fast);
     }
     .tab-btn.active {
-      background: var(--primary-light);
+      background: var(--bg-surface);
       color: var(--primary);
+      box-shadow: var(--shadow-xs);
+    }
+    .layout-toggle {
+      display: flex;
+      gap: 0.25rem;
+      background: var(--bg-input);
+      padding: 0.25rem;
+      border-radius: var(--radius-sm);
+    }
+    .layout-btn {
+      padding: 0.4rem 0.6rem;
+      border-radius: var(--radius-xs);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+    }
+    .layout-btn.active {
+      background: var(--bg-surface);
+      color: var(--primary);
+      box-shadow: var(--shadow-xs);
     }
   </style>
 </head>
@@ -45,24 +71,45 @@
 
     <div class="main-content">
       <header class="top-header">
-        <h2 style="font-size: 1.2rem; font-weight: 700;">Task Management</h2>
+        <div class="header-title-group">
+          <h2 style="font-size: 1.25rem; font-weight: 800;">Task Management</h2>
+          <span class="header-date-badge" id="headerDateBadge">Tasks</span>
+        </div>
+
         <div class="user-profile-menu">
-          <button class="btn btn-primary btn-sm" id="quickAddTaskBtn">＋ Add Task</button>
-          <span style="font-size: 0.9rem; font-weight: 600;" id="headerUserName">User</span>
+          <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Theme">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          </button>
+          <button class="btn btn-primary btn-sm" id="quickAddTaskBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            New Task
+          </button>
+          <div class="user-avatar" id="headerUserAvatar">U</div>
         </div>
       </header>
 
       <main class="page-container">
-        <div class="view-tabs">
-          <button class="tab-btn active" data-view="all">All Tasks</button>
-          <button class="tab-btn" data-view="today">Today</button>
-          <button class="tab-btn" data-view="upcoming">Upcoming</button>
-          <button class="tab-btn" data-view="overdue">Overdue</button>
-          <button class="tab-btn" data-view="completed">Completed</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.5rem;">
+          <div class="view-tabs">
+            <button class="tab-btn active" data-view="all">All Tasks</button>
+            <button class="tab-btn" data-view="today">Today</button>
+            <button class="tab-btn" data-view="upcoming">Upcoming</button>
+            <button class="tab-btn" data-view="overdue">Overdue</button>
+            <button class="tab-btn" data-view="completed">Completed</button>
+          </div>
+
+          <div class="layout-toggle">
+            <button class="layout-btn active" id="listViewBtn" title="List View">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            </button>
+            <button class="layout-btn" id="kanbanViewBtn" title="Kanban Board View">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="18" rx="1"></rect><rect x="14" y="3" width="7" height="18" rx="1"></rect></svg>
+            </button>
+          </div>
         </div>
 
         <div class="filter-bar">
-          <input type="text" id="searchInput" class="form-control" style="max-width: 240px;" placeholder="Search tasks...">
+          <input type="text" id="searchInput" class="form-control" style="max-width: 260px;" placeholder="Search tasks...">
 
           <select id="projectFilter" class="form-control" style="max-width: 180px;">
             <option value="">All Projects</option>
@@ -70,13 +117,13 @@
 
           <select id="priorityFilter" class="form-control" style="max-width: 150px;">
             <option value="">All Priorities</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
+            <option value="low">Low Priority</option>
+            <option value="medium">Medium Priority</option>
+            <option value="high">High Priority</option>
             <option value="urgent">Urgent</option>
           </select>
 
-          <select id="sortFilter" class="form-control" style="max-width: 160px; margin-left: auto;">
+          <select id="sortFilter" class="form-control" style="max-width: 180px; margin-left: auto;">
             <option value="createdAt">Sort: Created Date</option>
             <option value="dueDate">Sort: Due Date</option>
             <option value="priority">Sort: Priority</option>
@@ -85,7 +132,7 @@
         </div>
 
         <div id="tasksListContainer">
-          <div style="color: var(--text-muted); padding: 1.5rem; text-align: center;">Loading tasks...</div>
+          <div style="color: var(--text-muted); padding: 2rem; text-align: center;">Loading tasks...</div>
         </div>
       </main>
     </div>

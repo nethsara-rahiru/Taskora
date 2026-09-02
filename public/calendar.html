@@ -15,19 +15,35 @@
 
     <div class="main-content">
       <header class="top-header">
-        <h2 style="font-size: 1.2rem; font-weight: 700;">Calendar</h2>
+        <div class="header-title-group">
+          <h2 style="font-size: 1.25rem; font-weight: 800;">Calendar View</h2>
+          <span class="header-date-badge" id="headerDateBadge">Calendar</span>
+        </div>
+
         <div class="user-profile-menu">
-          <button class="btn btn-primary btn-sm" id="quickAddTaskBtn">＋ New Task</button>
-          <span style="font-size: 0.9rem; font-weight: 600;" id="headerUserName">User</span>
+          <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Theme">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          </button>
+          <button class="btn btn-primary btn-sm" id="quickAddTaskBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            New Task
+          </button>
+          <div class="user-avatar" id="headerUserAvatar">U</div>
         </div>
       </header>
 
       <main class="page-container">
         <div class="dashboard-card">
-          <div class="section-title">
-            <button class="btn btn-secondary btn-sm" id="prevMonthBtn">← Prev</button>
-            <span id="calendarMonthTitle" style="font-size: 1.25rem; font-weight: 800;">Month Year</span>
-            <button class="btn btn-secondary btn-sm" id="nextMonthBtn">Next →</button>
+          <div class="section-title" style="margin-bottom: 1.5rem;">
+            <button class="btn btn-secondary btn-sm" id="prevMonthBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              Prev
+            </button>
+            <span id="calendarMonthTitle" style="font-size: 1.35rem; font-weight: 800;">Month Year</span>
+            <button class="btn btn-secondary btn-sm" id="nextMonthBtn">
+              Next
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
           </div>
 
           <div class="calendar-grid" id="calendarGridHeader">
@@ -40,8 +56,8 @@
             <div class="calendar-header-day">Sat</div>
           </div>
 
-          <div class="calendar-grid" id="calendarDaysGrid" style="min-height: 400px;">
-            <!-- Days rendered here -->
+          <div class="calendar-grid" id="calendarDaysGrid">
+            <!-- Days rendered dynamically -->
           </div>
         </div>
       </main>

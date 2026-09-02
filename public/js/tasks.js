@@ -1,4 +1,5 @@
 let currentView = 'all';
+let currentLayout = 'list';
 
 async function initTasksPage() {
   await loadProjectsDropdown();
@@ -25,6 +26,23 @@ function setupEventListeners() {
       currentView = e.target.dataset.view;
       loadCurrentPageData();
     });
+  });
+
+  const listViewBtn = document.getElementById('listViewBtn');
+  const kanbanViewBtn = document.getElementById('kanbanViewBtn');
+
+  listViewBtn?.addEventListener('click', () => {
+    currentLayout = 'list';
+    listViewBtn.classList.add('active');
+    kanbanViewBtn?.classList.remove('active');
+    loadCurrentPageData();
+  });
+
+  kanbanViewBtn?.addEventListener('click', () => {
+    currentLayout = 'kanban';
+    kanbanViewBtn.classList.add('active');
+    listViewBtn?.classList.remove('active');
+    loadCurrentPageData();
   });
 
   const searchInput = document.getElementById('searchInput');
@@ -66,37 +84,98 @@ async function loadCurrentPageData() {
     container.innerHTML = '';
     if (tasks.length === 0) {
       container.innerHTML = `
-        <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
-          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📋</div>
-          <p style="font-weight: 600;">No tasks found</p>
-          <p style="font-size: 0.85rem; margin-top: 0.25rem;">Try adjusting your filters or click "+ Add Task" to create one.</p>
+        <div style="text-align: center; padding: 4rem 1rem; color: var(--text-muted); background: var(--bg-surface); border-radius: var(--radius-xl); border: 1px solid var(--border-color);">
+          <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--primary-light); color: var(--primary); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+          </div>
+          <p style="font-weight: 800; font-size: 1.1rem; color: var(--text-main);">No tasks found</p>
+          <p style="font-size: 0.875rem; margin-top: 0.25rem;">Try adjusting your filters or click "+ New Task" to create one.</p>
         </div>
       `;
       return;
     }
 
-    tasks.forEach(task => {
-      const card = TaskCard.render(
-        task,
-        async (id, completed) => {
-          const endpoint = completed ? `/tasks/${id}/complete` : `/tasks/${id}/uncomplete`;
-          await API.post(endpoint);
-          loadCurrentPageData();
-        },
-        (taskToEdit) => App.openTaskModal(taskToEdit),
-        async (id) => {
-          if (confirm('Are you sure you want to delete this task?')) {
-            await API.delete(`/tasks/${id}`);
-            Notifications.show('Task deleted', 'info');
-            loadCurrentPageData();
-          }
-        }
-      );
-      container.appendChild(card);
-    });
+    if (currentLayout === 'kanban') {
+      renderKanbanBoard(container, tasks);
+    } else {
+      renderListView(container, tasks);
+    }
   } catch (err) {
     Notifications.show(err.message, 'error');
   }
+}
+
+function renderListView(container, tasks) {
+  tasks.forEach(task => {
+    const card = TaskCard.render(
+      task,
+      async (id, completed) => {
+        const endpoint = completed ? `/tasks/${id}/complete` : `/tasks/${id}/uncomplete`;
+        await API.post(endpoint);
+        loadCurrentPageData();
+      },
+      (taskToEdit) => App.openTaskModal(taskToEdit),
+      async (id) => {
+        if (confirm('Are you sure you want to delete this task?')) {
+          await API.delete(`/tasks/${id}`);
+          Notifications.show('Task deleted', 'info');
+          loadCurrentPageData();
+        }
+      }
+    );
+    container.appendChild(card);
+  });
+}
+
+function renderKanbanBoard(container, tasks) {
+  const board = document.createElement('div');
+  board.className = 'kanban-board';
+
+  const columns = [
+    { id: 'pending', title: 'Pending Tasks', tasks: tasks.filter(t => t.status === 'pending') },
+    { id: 'in_progress', title: 'In Progress', tasks: tasks.filter(t => t.status === 'in_progress') },
+    { id: 'completed', title: 'Completed', tasks: tasks.filter(t => t.status === 'completed') }
+  ];
+
+  columns.forEach(col => {
+    const colElem = document.createElement('div');
+    colElem.className = 'kanban-column';
+    colElem.innerHTML = `
+      <div class="kanban-column-header">
+        <span>${col.title}</span>
+        <span class="count-pill">${col.tasks.length}</span>
+      </div>
+      <div class="kanban-task-list" id="col-${col.id}"></div>
+    `;
+
+    const listContainer = colElem.querySelector(`#col-${col.id}`);
+    if (col.tasks.length === 0) {
+      listContainer.innerHTML = `<div style="font-size: 0.8rem; color: var(--text-muted); padding: 1.5rem 0; text-align: center;">No tasks in this column</div>`;
+    } else {
+      col.tasks.forEach(task => {
+        const card = TaskCard.render(
+          task,
+          async (id, completed) => {
+            const endpoint = completed ? `/tasks/${id}/complete` : `/tasks/${id}/uncomplete`;
+            await API.post(endpoint);
+            loadCurrentPageData();
+          },
+          (taskToEdit) => App.openTaskModal(taskToEdit),
+          async (id) => {
+            if (confirm('Delete task?')) {
+              await API.delete(`/tasks/${id}`);
+              loadCurrentPageData();
+            }
+          }
+        );
+        listContainer.appendChild(card);
+      });
+    }
+
+    board.appendChild(colElem);
+  });
+
+  container.appendChild(board);
 }
 
 document.addEventListener('DOMContentLoaded', initTasksPage);

@@ -3,55 +3,176 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Taskora — Fast, Simple Personal Task Management</title>
-  <meta name="description" content="Organize your daily tasks, projects, priorities, and WhatsApp reminders with Taskora.">
+  <title>Taskora — Simple, Fast & Intelligent Personal Task Management</title>
+  <meta name="description" content="Organize your daily tasks, projects, priorities, and WhatsApp reminders effortlessly with Taskora.">
   <link rel="stylesheet" href="/css/main.css">
   <link rel="stylesheet" href="/css/components.css">
   <style>
-    .hero-section {
-      min-height: 100vh;
+    .landing-nav {
+      height: 80px;
       display: flex;
-      flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
+      padding: 0 4rem;
+      max-width: 1320px;
+      margin: 0 auto;
+    }
+    .hero {
+      position: relative;
+      padding: 5rem 2rem 6rem 2rem;
       text-align: center;
-      padding: 2rem;
-      background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(248, 250, 252, 1) 100%);
+      overflow: hidden;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      border-radius: var(--radius-full);
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(99, 102, 241, 0.2);
     }
     .hero-title {
-      font-size: 3.5rem;
+      font-size: 4rem;
       font-weight: 800;
-      letter-spacing: -0.02em;
-      margin-bottom: 1rem;
+      letter-spacing: -0.03em;
       line-height: 1.1;
+      margin-bottom: 1.25rem;
+      background: linear-gradient(135deg, var(--text-main) 30%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
     .hero-subtitle {
       font-size: 1.25rem;
       color: var(--text-muted);
-      max-width: 600px;
-      margin-bottom: 2rem;
+      max-width: 680px;
+      margin: 0 auto 2.5rem auto;
+      line-height: 1.6;
     }
-    .hero-buttons {
-      display: flex;
-      gap: 1rem;
+    .preview-card {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: 2rem;
+      box-shadow: 0 20px 50px -10px rgba(99, 102, 241, 0.15);
+      text-align: left;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      max-width: 1200px;
+      margin: 5rem auto;
+      padding: 0 2rem;
+    }
+    .feature-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: 2rem;
+      box-shadow: var(--shadow-xs);
+      transition: var(--transition-bounce);
+    }
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-lg);
     }
   </style>
 </head>
 <body>
-  <div class="hero-section">
-    <div style="font-size: 3rem; margin-bottom: 1rem;">⚡</div>
-    <h1 class="hero-title">Organize your tasks.<br>Boost your productivity.</h1>
-    <p class="hero-subtitle">Taskora is the clean, high-performance task manager designed for clarity, project organization, and timely reminders.</p>
-    <div class="hero-buttons">
-      <a href="/login.html" class="btn btn-secondary btn-lg">Sign In</a>
-      <a href="/register.html" class="btn btn-primary btn-lg">Get Started Free →</a>
+  <header class="landing-nav">
+    <a href="/" class="brand-logo" style="color: var(--text-main);">
+      <div class="brand-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+      </div>
+      Taskora
+    </a>
+
+    <div style="display: flex; gap: 1rem; align-items: center;">
+      <a href="/login.html" class="btn btn-secondary">Sign In</a>
+      <a href="/register.html" class="btn btn-primary">Get Started Free →</a>
     </div>
-  </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-badge">
+        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--primary);"></span>
+        Taskora V1 — Personal Productivity System
+      </div>
+      <h1 class="hero-title">Organize your workflow.<br>Never miss a deadline.</h1>
+      <p class="hero-subtitle">Taskora helps you manage daily tasks, projects, priorities, and schedules with real-time WhatsApp reminder integration.</p>
+
+      <div style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 4rem;">
+        <a href="/register.html" class="btn btn-primary btn-lg">Start Organizing Now →</a>
+        <a href="/login.html" class="btn btn-secondary btn-lg">Open Application</a>
+      </div>
+
+      <!-- Preview Mockup -->
+      <div class="preview-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); pb:1rem; padding-bottom:1rem; margin-bottom:1.5rem;">
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <span style="width:12px; height:12px; border-radius:50%; background:#EF4444; display:inline-block;"></span>
+            <span style="width:12px; height:12px; border-radius:50%; background:#F59E0B; display:inline-block;"></span>
+            <span style="width:12px; height:12px; border-radius:50%; background:#10B981; display:inline-block;"></span>
+          </div>
+          <span style="font-size:0.85rem; font-weight:700; color:var(--text-muted);">Taskora Dashboard Overview</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:1rem; margin-bottom:1.5rem;">
+          <div style="background:var(--primary-light); padding:1rem; border-radius:var(--radius-md);">
+            <div style="font-size:0.8rem; font-weight:600; color:var(--primary);">DUE TODAY</div>
+            <div style="font-size:1.5rem; font-weight:800; color:var(--primary);">5 Tasks</div>
+          </div>
+          <div style="background:var(--color-success-bg); padding:1rem; border-radius:var(--radius-md);">
+            <div style="font-size:0.8rem; font-weight:600; color:var(--color-success);">COMPLETED</div>
+            <div style="font-size:1.5rem; font-weight:800; color:var(--color-success);">12 Tasks</div>
+          </div>
+          <div style="background:var(--color-warning-bg); padding:1rem; border-radius:var(--radius-md);">
+            <div style="font-size:0.8rem; font-weight:600; color:var(--priority-high);">PRODUCTIVITY</div>
+            <div style="font-size:1.5rem; font-weight:800; color:var(--priority-high);">88% Rate</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features-grid">
+      <div class="feature-card">
+        <div style="width:48px; height:48px; border-radius:var(--radius-md); background:var(--primary-light); color:var(--primary); display:flex; align-items:center; justify-content:center; margin-bottom:1.25rem;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+        </div>
+        <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:0.5rem;">WhatsApp Reminders</h3>
+        <p style="color:var(--text-muted); font-size:0.9rem;">Never miss important deadlines with automated WhatsApp reminder notifications sent straight to your phone.</p>
+      </div>
+
+      <div class="feature-card">
+        <div style="width:48px; height:48px; border-radius:var(--radius-md); background:var(--color-success-bg); color:var(--color-success); display:flex; align-items:center; justify-content:center; margin-bottom:1.25rem;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        </div>
+        <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:0.5rem;">Project & Tag Groups</h3>
+        <p style="color:var(--text-muted); font-size:0.9rem;">Organize tasks into projects like Work, Personal, or University, complete with custom color themes and tag labels.</p>
+      </div>
+
+      <div class="feature-card">
+        <div style="width:48px; height:48px; border-radius:var(--radius-md); background:var(--color-warning-bg); color:var(--priority-high); display:flex; align-items:center; justify-content:center; margin-bottom:1.25rem;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="18" rx="1"></rect><rect x="14" y="3" width="7" height="18" rx="1"></rect></svg>
+        </div>
+        <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:0.5rem;">List & Kanban Views</h3>
+        <p style="color:var(--text-muted); font-size:0.9rem;">Switch seamlessly between classic List View and Kanban Board columns to visualize your workflow progress.</p>
+      </div>
+    </section>
+  </main>
 
   <script src="/js/api.js"></script>
   <script src="/js/auth.js"></script>
   <script>
-    // Redirect if already logged in
     Auth.getCurrentUser().then(user => {
       if (user) window.location.href = '/dashboard.html';
     });

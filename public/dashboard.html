@@ -15,46 +15,67 @@
 
     <div class="main-content">
       <header class="top-header">
-        <h2 style="font-size: 1.2rem; font-weight: 700;">Dashboard</h2>
+        <div class="header-title-group">
+          <h2 style="font-size: 1.25rem; font-weight: 800;">Dashboard</h2>
+          <span class="header-date-badge" id="headerDateBadge">Today</span>
+        </div>
+
         <div class="user-profile-menu">
-          <button class="btn btn-primary btn-sm" id="quickAddTaskBtn">＋ New Task</button>
-          <span style="font-size: 0.9rem; font-weight: 600;" id="headerUserName">User</span>
+          <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Theme">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          </button>
+          <button class="btn btn-primary btn-sm" id="quickAddTaskBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            New Task
+          </button>
+          <div class="user-avatar" id="headerUserAvatar">U</div>
         </div>
       </header>
 
       <main class="page-container">
-        <div style="margin-bottom: 1.75rem;">
-          <h1 style="font-size: 1.75rem; font-weight: 800;" id="welcomeHeading">Good day!</h1>
-          <p style="color: var(--text-muted); font-size: 0.95rem;">Here is your productivity summary for today.</p>
+        <div style="margin-bottom: 2rem;">
+          <h1 style="font-size: 2rem; font-weight: 800; letter-spacing: -0.02em;" id="welcomeHeading">Welcome back!</h1>
+          <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem;">Here is your productivity overview and daily focus list.</p>
         </div>
 
         <div class="dashboard-grid">
           <div class="stat-card">
-            <div class="stat-icon primary">📅</div>
+            <div class="stat-icon primary">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </div>
             <div class="stat-info">
               <div class="stat-value" id="statToday">0</div>
               <div class="stat-label">Due Today</div>
             </div>
           </div>
+
           <div class="stat-card">
-            <div class="stat-icon success">✓</div>
+            <div class="stat-icon success">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
             <div class="stat-info">
               <div class="stat-value" id="statCompleted">0</div>
               <div class="stat-label">Completed Today</div>
             </div>
           </div>
+
           <div class="stat-card">
-            <div class="stat-icon danger">⚠️</div>
+            <div class="stat-icon danger">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            </div>
             <div class="stat-info">
               <div class="stat-value" id="statOverdue">0</div>
               <div class="stat-label">Overdue Tasks</div>
             </div>
           </div>
+
           <div class="stat-card">
-            <div class="stat-icon warning">🚀</div>
+            <div class="stat-icon warning">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            </div>
             <div class="stat-info">
               <div class="stat-value" id="statUpcoming">0</div>
-              <div class="stat-label">Upcoming</div>
+              <div class="stat-label">Upcoming Tasks</div>
             </div>
           </div>
         </div>
@@ -62,20 +83,26 @@
         <div class="dashboard-sections">
           <div class="dashboard-card">
             <div class="section-title">
-              <span>Today's Tasks</span>
-              <a href="/tasks.html" style="font-size: 0.85rem; font-weight: 600;">View All Tasks →</a>
+              <span>Today's Focus List</span>
+              <a href="/tasks.html" style="font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem;">
+                View All Tasks
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </a>
             </div>
             <div id="todayTaskList">
-              <div style="color: var(--text-muted); font-size: 0.9rem; padding: 1rem 0;">Loading tasks...</div>
+              <div style="color: var(--text-muted); font-size: 0.9rem; padding: 1.5rem 0; text-align: center;">Loading tasks...</div>
             </div>
           </div>
 
-          <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
             <div class="dashboard-card">
-              <div class="section-title">Completion Rate</div>
-              <div style="font-size: 2rem; font-weight: 800; color: var(--primary);" id="statRate">0%</div>
-              <div style="width: 100%; height: 8px; background: var(--bg-input); border-radius: 4px; overflow: hidden; margin-top: 0.5rem;">
-                <div id="rateProgressBar" style="width: 0%; height: 100%; background: var(--primary); transition: var(--transition);"></div>
+              <div class="section-title">Completion Velocity</div>
+              <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.75rem;">
+                <div style="font-size: 2.25rem; font-weight: 800; color: var(--primary);" id="statRate">0%</div>
+                <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);" id="statTotalSub">0 / 0 Tasks</div>
+              </div>
+              <div style="width: 100%; height: 10px; background: var(--bg-input); border-radius: 5px; overflow: hidden;">
+                <div id="rateProgressBar" style="width: 0%; height: 100%; background: var(--primary-gradient); transition: var(--transition-bounce);"></div>
               </div>
             </div>
 
@@ -109,13 +136,28 @@
         document.getElementById('statOverdue').textContent = s.overdue;
         document.getElementById('statUpcoming').textContent = s.upcoming;
         document.getElementById('statRate').textContent = `${s.completionRate}%`;
+        document.getElementById('statTotalSub').textContent = `${s.totalCompleted} of ${s.totalTasks} Done`;
         document.getElementById('rateProgressBar').style.width = `${s.completionRate}%`;
+
+        // Update welcome heading
+        const user = Auth.currentUser;
+        if (user) {
+          document.getElementById('welcomeHeading').textContent = `Good day, ${user.name.split(' ')[0]}!`;
+        }
 
         // Today tasks list
         const todayContainer = document.getElementById('todayTaskList');
         todayContainer.innerHTML = '';
         if (data.todayTasks.length === 0) {
-          todayContainer.innerHTML = `<div style="color: var(--text-muted); font-size: 0.9rem; padding: 1rem 0;">🎉 All caught up for today!</div>`;
+          todayContainer.innerHTML = `
+            <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+              <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--color-success-bg); color: var(--color-success); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <p style="font-weight: 700; color: var(--text-main);">All caught up for today!</p>
+              <p style="font-size: 0.85rem; margin-top: 0.25rem;">No pending tasks scheduled for today.</p>
+            </div>
+          `;
         } else {
           data.todayTasks.forEach(task => {
             const card = TaskCard.render(
@@ -141,12 +183,18 @@
         const recentContainer = document.getElementById('recentList');
         recentContainer.innerHTML = '';
         if (data.recentlyCompleted.length === 0) {
-          recentContainer.innerHTML = `<div style="color: var(--text-muted); font-size: 0.85rem;">No recent completions.</div>`;
+          recentContainer.innerHTML = `<div style="color: var(--text-muted); font-size: 0.85rem; padding: 0.5rem 0;">No recent completions.</div>`;
         } else {
           data.recentlyCompleted.forEach(t => {
             const div = document.createElement('div');
-            div.style.cssText = 'padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; display: flex; justify-content: space-between;';
-            div.innerHTML = `<span>✓ ${TaskCard.escapeHtml(t.title)}</span> <span style="color: var(--text-light);">${new Date(t.completedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>`;
+            div.style.cssText = 'padding: 0.65rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;';
+            div.innerHTML = `
+              <span style="display:flex; align-items:center; gap:0.4rem; font-weight:600;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                ${TaskCard.escapeHtml(t.title)}
+              </span>
+              <span style="color: var(--text-light); font-size: 0.75rem;">${new Date(t.completedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            `;
             recentContainer.appendChild(div);
           });
         }

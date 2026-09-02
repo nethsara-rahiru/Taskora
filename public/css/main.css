@@ -1,72 +1,109 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap');
 
 :root {
-  /* Core Palette */
+  /* Brand Primary Palette */
   --primary: #6366F1;
   --primary-hover: #4F46E5;
-  --primary-light: rgba(99, 102, 241, 0.12);
-  
-  --bg-main: #F8FAFC;
+  --primary-active: #4338CA;
+  --primary-gradient: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+  --primary-light: rgba(99, 102, 241, 0.08);
+  --primary-glow: rgba(99, 102, 241, 0.2);
+
+  /* Light Theme Color System (Perfectly Harmonized) */
+  --bg-main: #F4F6F9;
   --bg-surface: #FFFFFF;
-  --bg-sidebar: #0F172A;
+  --bg-surface-hover: #F8FAFC;
+  --bg-sidebar: #FFFFFF;
+  --bg-header: rgba(255, 255, 255, 0.85);
   --bg-input: #F1F5F9;
-  
+
+  /* Typography Colors (Light Mode) */
   --text-main: #0F172A;
   --text-muted: #64748B;
   --text-light: #94A3B8;
   --text-white: #FFFFFF;
-  
-  --border-color: #E2E8F0;
-  --border-focus: #6366F1;
-  
-  /* Status & Severity */
-  --color-success: #10B981;
-  --color-success-bg: rgba(16, 185, 129, 0.12);
-  --color-warning: #F59E0B;
-  --color-warning-bg: rgba(245, 158, 11, 0.12);
-  --color-danger: #EF4444;
-  --color-danger-bg: rgba(239, 68, 68, 0.12);
-  --color-info: #3B82F6;
 
-  /* Priority Colors */
+  /* Sidebar Text & Nav Colors (Light Mode) */
+  --sidebar-text: #64748B;
+  --sidebar-text-active: #FFFFFF;
+  --sidebar-hover: rgba(99, 102, 241, 0.08);
+  --sidebar-border: #E2E8F0;
+
+  /* Borders & Dividers */
+  --border-color: #E2E8F0;
+  --border-subtle: #F1F5F9;
+  --border-focus: #6366F1;
+  --border-glass: rgba(226, 232, 240, 0.8);
+
+  /* Semantic Status Colors */
+  --color-success: #10B981;
+  --color-success-bg: rgba(16, 185, 129, 0.1);
+  --color-warning: #F59E0B;
+  --color-warning-bg: rgba(245, 158, 11, 0.1);
+  --color-danger: #EF4444;
+  --color-danger-bg: rgba(239, 68, 68, 0.1);
+  --color-info: #3B82F6;
+  --color-info-bg: rgba(59, 130, 246, 0.1);
+
+  /* Priority Palette */
   --priority-low: #10B981;
   --priority-medium: #3B82F6;
   --priority-high: #F59E0B;
   --priority-urgent: #EF4444;
 
-  /* Elevation & Shadow */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  /* Shadows & Depth */
+  --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 2px 4px 0 rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 6px 12px -2px rgba(15, 23, 42, 0.06), 0 3px 6px -2px rgba(15, 23, 42, 0.03);
+  --shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.08), 0 6px 12px -4px rgba(15, 23, 42, 0.04);
+  --shadow-xl: 0 24px 36px -6px rgba(15, 23, 42, 0.12), 0 12px 18px -6px rgba(15, 23, 42, 0.06);
 
-  /* Border Radius */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
+  /* Radius System */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
   --radius-full: 9999px;
 
   /* Transitions */
-  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Dark Mode Theme Overrides */
+/* Dark Theme Overrides (Harmonized Dark Palette) */
 [data-theme="dark"] {
   --bg-main: #0B0F19;
-  --bg-surface: #1E293B;
-  --bg-sidebar: #090D16;
-  --bg-input: #334155;
-  
+  --bg-surface: #131C2E;
+  --bg-surface-hover: #1E293B;
+  --bg-sidebar: #0E1626;
+  --bg-header: rgba(19, 28, 46, 0.85);
+  --bg-input: #1E293B;
+
   --text-main: #F8FAFC;
   --text-muted: #94A3B8;
   --text-light: #64748B;
-  
-  --border-color: #334155;
+
+  --sidebar-text: #94A3B8;
+  --sidebar-text-active: #FFFFFF;
+  --sidebar-hover: rgba(255, 255, 255, 0.07);
+  --sidebar-border: #1E293B;
+
+  --border-color: #1E293B;
+  --border-subtle: #0F172A;
   --border-focus: #818CF8;
+  --border-glass: rgba(30, 41, 59, 0.8);
+
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 2px 4px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 6px 12px -2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 24px 36px -6px rgba(0, 0, 0, 0.6);
 }
 
-/* Base Resets */
-* {
+/* Global Resets */
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -79,12 +116,20 @@ html, body {
   color: var(--text-main);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-main);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
 }
 
 a {
   color: var(--primary);
   text-decoration: none;
-  transition: var(--transition);
+  transition: var(--transition-fast);
 }
 
 a:hover {
@@ -96,14 +141,16 @@ button {
   cursor: pointer;
   border: none;
   background: none;
+  outline: none;
 }
 
 input, select, textarea {
   font-family: inherit;
-  font-size: 0.95rem;
+  font-size: 0.925rem;
+  color: var(--text-main);
 }
 
-/* Scrollbar Styling */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -112,15 +159,19 @@ input, select, textarea {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--text-light);
-  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
 }
 
-/* App Layout Grid */
+/* Layout Framework */
 .app-container {
   display: flex;
   min-height: 100vh;
   width: 100%;
+  background-color: var(--bg-main);
 }
 
 .main-content {
@@ -128,12 +179,14 @@ input, select, textarea {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  height: 100vh;
   overflow-y: auto;
+  background-color: var(--bg-main);
 }
 
 .page-container {
-  padding: 2rem;
-  max-width: 1200px;
+  padding: 2rem 2.5rem;
+  max-width: 1320px;
   width: 100%;
   margin: 0 auto;
 }

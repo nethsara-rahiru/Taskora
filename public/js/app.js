@@ -7,16 +7,22 @@ const App = {
       Sidebar.render();
       this.initHeaderUser(user);
       this.initQuickAddBtn();
+      this.initThemeToggle();
       this.startNotificationPoller();
     }
   },
 
   applySavedTheme() {
     const savedTheme = localStorage.getItem('taskora_theme') || 'system';
-    if (savedTheme === 'dark' || (savedTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    } else {
-      document.documentElement.setAttribute('data-theme', 'light');
+    const isDark = savedTheme === 'dark' || (savedTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    
+    const themeBtn = document.getElementById('themeToggleBtn');
+    if (themeBtn) {
+      themeBtn.innerHTML = isDark 
+        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`
+        : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+      themeBtn.setAttribute('title', isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode');
     }
   },
 
@@ -25,10 +31,33 @@ const App = {
     this.applySavedTheme();
   },
 
+  initThemeToggle() {
+    const themeBtn = document.getElementById('themeToggleBtn');
+    if (themeBtn) {
+      themeBtn.addEventListener('click', () => {
+        const current = localStorage.getItem('taskora_theme') || 'system';
+        const isCurrentlyDark = current === 'dark' || (current === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        this.setTheme(isCurrentlyDark ? 'light' : 'dark');
+      });
+    }
+  },
+
   initHeaderUser(user) {
     const userNameElem = document.getElementById('headerUserName');
     if (userNameElem) {
       userNameElem.textContent = user.name;
+    }
+
+    const userAvatarElem = document.getElementById('headerUserAvatar');
+    if (userAvatarElem) {
+      const initials = user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      userAvatarElem.textContent = initials;
+    }
+
+    const dateBadgeElem = document.getElementById('headerDateBadge');
+    if (dateBadgeElem) {
+      const now = new Date();
+      dateBadgeElem.textContent = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
     }
   },
 
@@ -52,7 +81,7 @@ const App = {
 
         <div class="form-group">
           <label class="form-label">Description</label>
-          <textarea id="taskDescInput" class="form-control" rows="2" placeholder="Add additional details...">${taskToEdit ? TaskCard.escapeHtml(taskToEdit.description || '') : ''}</textarea>
+          <textarea id="taskDescInput" class="form-control" rows="3" placeholder="Add additional context or notes...">${taskToEdit ? TaskCard.escapeHtml(taskToEdit.description || '') : ''}</textarea>
         </div>
 
         <div class="form-row">
@@ -67,9 +96,9 @@ const App = {
           <div class="form-group" style="flex:1;">
             <label class="form-label">Priority</label>
             <select id="taskPrioritySelect" class="form-control">
-              <option value="low" ${taskToEdit && taskToEdit.priority === 'low' ? 'selected' : ''}>Low</option>
-              <option value="medium" ${!taskToEdit || taskToEdit.priority === 'medium' ? 'selected' : ''}>Medium</option>
-              <option value="high" ${taskToEdit && taskToEdit.priority === 'high' ? 'selected' : ''}>High</option>
+              <option value="low" ${taskToEdit && taskToEdit.priority === 'low' ? 'selected' : ''}>Low Priority</option>
+              <option value="medium" ${!taskToEdit || taskToEdit.priority === 'medium' ? 'selected' : ''}>Medium Priority</option>
+              <option value="high" ${taskToEdit && taskToEdit.priority === 'high' ? 'selected' : ''}>High Priority</option>
               <option value="urgent" ${taskToEdit && taskToEdit.priority === 'urgent' ? 'selected' : ''}>Urgent</option>
             </select>
           </div>
@@ -89,7 +118,7 @@ const App = {
 
         <div class="form-row">
           <div class="form-group" style="flex:1;">
-            <label class="form-label">Reminder (Minutes Before)</label>
+            <label class="form-label">Reminder</label>
             <select id="taskReminderSelect" class="form-control">
               <option value="0">At due time</option>
               <option value="15" selected>15 minutes before</option>
@@ -143,7 +172,6 @@ const App = {
   },
 
   startNotificationPoller() {
-    // Poll for notifications every 20 seconds
     setInterval(async () => {
       try {
         const data = await API.get('/whatsapp/notifications');
@@ -154,9 +182,7 @@ const App = {
             await API.post(`/whatsapp/notifications/${n._id}/read`).catch(() => {});
           }
         }
-      } catch (e) {
-        // Silent poll error handling
-      }
+      } catch (e) {}
     }, 20000);
   }
 };
