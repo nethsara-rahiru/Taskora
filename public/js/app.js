@@ -11,6 +11,10 @@ const App = {
       this.initThemeToggle();
       this.initMobileFab();
       this.startNotificationPoller();
+
+      if (typeof window.loadCurrentPageData === 'function') {
+        window.loadCurrentPageData();
+      }
     }
   },
 

@@ -94,12 +94,27 @@
 
   /* Top Header Mobile Adjustments */
   .top-header {
-    height: 64px;
-    padding: 0 1rem;
+    height: 60px;
+    padding: 0 0.85rem;
+  }
+
+  .header-title-group h2 {
+    font-size: 1.05rem;
   }
 
   .header-date-badge {
     display: none;
+  }
+
+  /* Hide header's + New Task button on mobile to avoid overcrowding (Mobile FAB handles this) */
+  .top-header .btn-primary {
+    display: none;
+  }
+
+  .mobile-hamburger-btn {
+    display: inline-flex;
+    margin-right: 0.15rem;
+    flex-shrink: 0;
   }
 
   .page-container {
