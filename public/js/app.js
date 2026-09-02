@@ -6,8 +6,10 @@ const App = {
     if (user) {
       Sidebar.render();
       this.initHeaderUser(user);
+      this.initMobileMenu();
       this.initQuickAddBtn();
       this.initThemeToggle();
+      this.initMobileFab();
       this.startNotificationPoller();
     }
   },
@@ -58,6 +60,33 @@ const App = {
     if (dateBadgeElem) {
       const now = new Date();
       dateBadgeElem.textContent = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+  },
+
+  initMobileMenu() {
+    const headerGroup = document.querySelector('.header-title-group');
+    if (headerGroup && !document.getElementById('hamburgerBtn')) {
+      const btn = document.createElement('button');
+      btn.id = 'hamburgerBtn';
+      btn.className = 'btn-icon mobile-hamburger-btn';
+      btn.title = 'Open Menu';
+      btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>`;
+      headerGroup.prepend(btn);
+
+      btn.addEventListener('click', () => Sidebar.toggleMobileDrawer());
+    }
+  },
+
+  initMobileFab() {
+    if (!document.getElementById('mobileFabBtn')) {
+      const fab = document.createElement('button');
+      fab.id = 'mobileFabBtn';
+      fab.className = 'mobile-fab-btn';
+      fab.title = 'Create New Task';
+      fab.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+      document.body.appendChild(fab);
+
+      fab.addEventListener('click', () => this.openTaskModal());
     }
   },
 

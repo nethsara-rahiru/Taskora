@@ -38,6 +38,9 @@ const Sidebar = {
           </div>
           Taskora
         </a>
+        <button class="btn-icon mobile-sidebar-close" id="mobileSidebarCloseBtn" title="Close Menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
       <nav class="sidebar-nav">
         <div class="nav-section-label">Main Menu</div>
@@ -49,7 +52,7 @@ const Sidebar = {
         `).join('')}
       </nav>
       <div class="sidebar-footer">
-        <button class="btn btn-secondary btn-sm" style="width: 100%; border-color: rgba(255,255,255,0.15); color: #E2E8F0; background: rgba(255,255,255,0.05);" id="logoutBtn">
+        <button class="btn btn-secondary btn-sm" style="width: 100%;" id="logoutBtn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
           Sign Out
         </button>
@@ -60,7 +63,43 @@ const Sidebar = {
     if (sidebarElem) {
       sidebarElem.innerHTML = sidebarHtml;
       document.getElementById('logoutBtn')?.addEventListener('click', () => Auth.logout());
+      document.getElementById('mobileSidebarCloseBtn')?.addEventListener('click', () => this.closeMobileDrawer());
     }
+
+    this.initOverlay();
+  },
+
+  initOverlay() {
+    let overlay = document.querySelector('.sidebar-backdrop');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'sidebar-backdrop';
+      document.body.appendChild(overlay);
+      overlay.addEventListener('click', () => this.closeMobileDrawer());
+    }
+  },
+
+  toggleMobileDrawer() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.sidebar-backdrop');
+    if (sidebar) {
+      const isOpen = sidebar.classList.contains('open');
+      if (isOpen) {
+        this.closeMobileDrawer();
+      } else {
+        sidebar.classList.add('open');
+        if (overlay) overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+  },
+
+  closeMobileDrawer() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.sidebar-backdrop');
+    if (sidebar) sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
+    document.body.style.overflow = '';
   }
 };
 
