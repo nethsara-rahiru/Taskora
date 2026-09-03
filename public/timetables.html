@@ -248,6 +248,18 @@
       transform: scale(0.96);
       box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
     }
+    .matrix-slot-block.faded {
+      opacity: 0.28;
+      filter: grayscale(45%);
+      box-shadow: none;
+      transition: opacity 0.25s ease, filter 0.25s ease, transform 0.25s ease;
+    }
+    .matrix-slot-block.faded:hover {
+      opacity: 0.95;
+      filter: grayscale(0%);
+      transform: scale(1.02);
+      z-index: 30;
+    }
     .matrix-day-col.drag-over {
       background: color-mix(in srgb, var(--primary) 12%, var(--bg-surface)) !important;
       outline: 2px dashed var(--primary);
@@ -376,6 +388,7 @@
         <div class="header-title-group">
           <h2 style="font-size: 1.25rem; font-weight: 800;">Timetables & Schedules</h2>
           <span class="header-date-badge" id="headerDateBadge">Weekly Schedules</span>
+          <span class="header-date-badge" id="saveStatusBadge" style="display: none; transition: all 0.2s; font-weight: 700;">All changes saved</span>
         </div>
 
         <div class="user-profile-menu">

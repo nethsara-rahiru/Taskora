@@ -79,25 +79,33 @@ function renderTimetablesUI(timetables) {
     return;
   }
 
-  // Ensure an active timetable is selected
-  if (!activeTimetableId || !timetables.some(t => t._id === activeTimetableId)) {
-    const primary = timetables.find(t => t.isPrimary) || timetables[0];
-    activeTimetableId = primary._id;
+  // Ensure an active timetable is selected (defaults to 'all')
+  if (!activeTimetableId) {
+    activeTimetableId = 'all';
   }
 
-  const activeTimetable = timetables.find(t => t._id === activeTimetableId);
+  // Render Schedule Switcher Tabs (All View + Individual Schedules)
+  const allTabHtml = `
+    <button
+      class="schedule-tab ${activeTimetableId === 'all' ? 'active' : ''}"
+      data-id="all"
+      aria-pressed="${activeTimetableId === 'all'}"
+      title="Show All Schedules"
+    >
+      <span class="tab-dot" style="background: var(--primary);"></span>
+      All Schedules (${timetables.length})
+    </button>
+  `;
 
-  // Render Schedule Switcher Tabs
-  pillsContainer.innerHTML = timetables.map(t => `
+  pillsContainer.innerHTML = allTabHtml + timetables.map(t => `
     <button
       class="schedule-tab ${t._id === activeTimetableId ? 'active' : ''}"
       data-id="${t._id}"
       aria-pressed="${t._id === activeTimetableId}"
-      title="Switch to ${TaskCard.escapeHtml(t.title)}"
+      title="Focus on ${TaskCard.escapeHtml(t.title)}"
     >
       <span class="tab-dot" style="background: ${t.color || 'var(--primary)'};"></span>
       ${TaskCard.escapeHtml(t.title)}
-      ${t.isPrimary ? '<span class="tab-primary-badge">DEFAULT</span>' : ''}
     </button>
   `).join('');
 
@@ -105,7 +113,6 @@ function renderTimetablesUI(timetables) {
     btn.addEventListener('click', (e) => {
       activeTimetableId = e.currentTarget.dataset.id;
       renderTimetablesUI(cachedTimetables);
-      // Scroll active tab into view smoothly
       e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     });
   });
@@ -114,16 +121,19 @@ function renderTimetablesUI(timetables) {
   const activeTab = pillsContainer.querySelector('.schedule-tab.active');
   if (activeTab) activeTab.scrollIntoView({ block: 'nearest', inline: 'center' });
 
+  const isAllView = activeTimetableId === 'all';
   if (addSlotBtn) addSlotBtn.style.display = 'inline-flex';
-  if (editBtn) editBtn.style.display = 'inline-flex';
-  if (deleteBtn) deleteBtn.style.display = 'inline-flex';
+  if (editBtn) editBtn.style.display = isAllView ? 'none' : 'inline-flex';
+  if (deleteBtn) deleteBtn.style.display = isAllView ? 'none' : 'inline-flex';
 
-  renderWeeklyGrid(activeTimetable);
+  renderWeeklyGrid(cachedTimetables);
 }
 
-function renderWeeklyGrid(timetable) {
+function renderWeeklyGrid(timetablesInput) {
   const gridContainer = document.getElementById('weeklyGridContainer');
-  if (!gridContainer || !timetable) return;
+  if (!gridContainer || !timetablesInput) return;
+
+  const timetablesList = Array.isArray(timetablesInput) ? timetablesInput : [timetablesInput];
 
   // Trigger smooth transition animation
   gridContainer.classList.remove('tab-fade-in');
@@ -131,7 +141,19 @@ function renderWeeklyGrid(timetable) {
   gridContainer.classList.add('tab-fade-in');
 
   const todayDayOfWeek = new Date().getDay(); // 0=Sun, 1=Mon...
-  const slots = timetable.slots || [];
+
+  // Flatten all slots across timetables
+  const allSlots = [];
+  timetablesList.forEach(tt => {
+    (tt.slots || []).forEach(s => {
+      allSlots.push({
+        ...s,
+        parentTimetableId: tt._id,
+        parentTimetableTitle: tt.title,
+        parentColor: tt.color || '#6366F1'
+      });
+    });
+  });
 
   gridContainer.innerHTML = '';
 
@@ -154,7 +176,7 @@ function renderWeeklyGrid(timetable) {
 
   daysToRender.forEach(day => {
     const isToday = day.id === todayDayOfWeek;
-    const daySlotsCount = slots.filter(s => s.dayOfWeek === day.id).length;
+    const daySlotsCount = allSlots.filter(s => s.dayOfWeek === day.id).length;
 
     const dayHeader = document.createElement('div');
     dayHeader.className = `matrix-header-cell${isToday ? ' is-today' : ''}`;
@@ -185,7 +207,7 @@ function renderWeeklyGrid(timetable) {
   // 3. Render Day Grid Columns
   daysToRender.forEach(day => {
     const isToday = day.id === todayDayOfWeek;
-    const daySlots = slots.filter(s => s.dayOfWeek === day.id);
+    const daySlots = allSlots.filter(s => s.dayOfWeek === day.id);
 
     const dayCol = document.createElement('div');
     dayCol.className = `matrix-day-col${isToday ? ' is-today' : ''}`;
@@ -202,13 +224,14 @@ function renderWeeklyGrid(timetable) {
       dayCol.classList.remove('drag-over');
     });
 
-    dayCol.addEventListener('drop', async (e) => {
+    dayCol.addEventListener('drop', (e) => {
       e.preventDefault();
       dayCol.classList.remove('drag-over');
 
       const slotId = e.dataTransfer.getData('text/plain');
+      const parentTtId = e.dataTransfer.getData('parentTimetableId');
       const durationMins = parseInt(e.dataTransfer.getData('durationMins'), 10) || 60;
-      if (!slotId) return;
+      if (!slotId || !parentTtId) return;
 
       const rect = dayCol.getBoundingClientRect();
       const offsetY = e.clientY - rect.top;
@@ -230,19 +253,8 @@ function renderWeeklyGrid(timetable) {
       const newStartTime = formatTime(absoluteStartMins);
       const newEndTime = formatTime(absoluteEndMins);
 
-      try {
-        await SyncManager.mutate('PUT', `/timetables/${timetable._id}/slots/${slotId}`, {
-          dayOfWeek: day.id,
-          startTime: newStartTime,
-          endTime: newEndTime
-        }, {
-          invalidates: [{ cacheKey: 'timetables', endpoint: '/timetables' }]
-        });
-        Notifications.show(`Moved to ${day.name} (${newStartTime}–${newEndTime})`, 'success');
-        loadCurrentPageData();
-      } catch (err) {
-        Notifications.show(err.message || 'Failed to move slot', 'error');
-      }
+      // Optimistically update local state & trigger debounced save
+      updateSlotOptimistically(parentTtId, slotId, day.id, newStartTime, newEndTime);
     });
 
     // Render background hour grid lines
@@ -267,10 +279,11 @@ function renderWeeklyGrid(timetable) {
       const durationMins = Math.max(15, endTotalMins - startTotalMins);
       const heightPx = Math.max(34, (durationMins / 60) * HOUR_HEIGHT);
 
-      const slotBg = slot.color || timetable.color || '#6366F1';
+      const slotBg = slot.color || slot.parentColor || '#6366F1';
+      const isFaded = activeTimetableId !== 'all' && activeTimetableId !== slot.parentTimetableId;
 
       const block = document.createElement('div');
-      block.className = 'matrix-slot-block';
+      block.className = `matrix-slot-block${isFaded ? ' faded' : ''}`;
       block.setAttribute('draggable', 'true');
       block.style.top = `${topPx + 2}px`;
       block.style.height = `${heightPx - 4}px`;
@@ -307,6 +320,7 @@ function renderWeeklyGrid(timetable) {
       // Drag start & end events
       block.addEventListener('dragstart', (e) => {
         e.dataTransfer.setData('text/plain', slot._id);
+        e.dataTransfer.setData('parentTimetableId', slot.parentTimetableId);
         e.dataTransfer.setData('durationMins', durationMins);
         e.dataTransfer.effectAllowed = 'move';
         block.classList.add('dragging');
@@ -325,7 +339,7 @@ function renderWeeklyGrid(timetable) {
         tooltip.style.borderLeftColor = slotBg;
         tooltip.innerHTML = `
           <div style="font-size:0.68rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">
-            ${day.name} • ${timetable.title}
+            ${day.name} • ${TaskCard.escapeHtml(slot.parentTimetableTitle)}
           </div>
           <div style="font-size:0.95rem; font-weight:800; color:var(--text-main); margin-bottom:0.35rem; line-height:1.2;">
             ${TaskCard.escapeHtml(slot.subject)}
@@ -365,7 +379,7 @@ function renderWeeklyGrid(timetable) {
             teacher: slot.teacher,
             color: slot.color
           };
-          await SyncManager.mutate('POST', `/timetables/${timetable._id}/slots`, duplicatePayload, {
+          await SyncManager.mutate('POST', `/timetables/${slot.parentTimetableId}/slots`, duplicatePayload, {
             invalidates: [{ cacheKey: 'timetables', endpoint: '/timetables' }]
           });
           Notifications.show('Slot duplicated!', 'success');
@@ -383,7 +397,7 @@ function renderWeeklyGrid(timetable) {
       block.querySelector('.delete-slot-btn').addEventListener('click', async (e) => {
         e.stopPropagation();
         if (confirm(`Delete "${slot.subject}"?`)) {
-          await SyncManager.mutate('DELETE', `/timetables/${timetable._id}/slots/${slot._id}`, null, {
+          await SyncManager.mutate('DELETE', `/timetables/${slot.parentTimetableId}/slots/${slot._id}`, null, {
             invalidates: [{ cacheKey: 'timetables', endpoint: '/timetables' }]
           });
           Notifications.show('Slot removed', 'info');
@@ -398,6 +412,103 @@ function renderWeeklyGrid(timetable) {
   });
 }
 
+// ── Debounced Auto-Save Engine ──
+const pendingChangesMap = new Map(); // key: slotId -> { parentTtId, slotId, dayOfWeek, startTime, endTime }
+let saveDebounceTimer = null;
+
+function updateSlotOptimistically(parentTtId, slotId, dayOfWeek, startTime, endTime) {
+  // 1. Update in-memory cache optimistically
+  const tt = cachedTimetables.find(t => t._id === parentTtId);
+  if (tt && tt.slots) {
+    const slot = tt.slots.find(s => s._id === slotId);
+    if (slot) {
+      slot.dayOfWeek = dayOfWeek;
+      slot.startTime = startTime;
+      slot.endTime = endTime;
+    }
+  }
+
+  // 2. Queue payload for pending save
+  pendingChangesMap.set(slotId, { parentTtId, slotId, dayOfWeek, startTime, endTime });
+
+  // 3. Update header status badge
+  updateSaveStatusBadge('unsaved');
+
+  // 4. Re-render UI immediately (zero lag)
+  renderWeeklyGrid(cachedTimetables);
+
+  // 5. Start 3-second debounce timer
+  if (saveDebounceTimer) clearTimeout(saveDebounceTimer);
+  saveDebounceTimer = setTimeout(flushPendingSaves, 3000);
+}
+
+async function flushPendingSaves() {
+  if (saveDebounceTimer) {
+    clearTimeout(saveDebounceTimer);
+    saveDebounceTimer = null;
+  }
+
+  if (pendingChangesMap.size === 0) return;
+
+  const itemsToSave = Array.from(pendingChangesMap.values());
+  pendingChangesMap.clear();
+
+  updateSaveStatusBadge('saving');
+
+  try {
+    for (const item of itemsToSave) {
+      await API.put(`/timetables/${item.parentTtId}/slots/${item.slotId}`, {
+        dayOfWeek: item.dayOfWeek,
+        startTime: item.startTime,
+        endTime: item.endTime
+      });
+    }
+
+    // Invalidate local SWR cache
+    SyncManager.invalidate('timetables', '/timetables');
+    updateSaveStatusBadge('saved');
+  } catch (err) {
+    Notifications.show(err.message || 'Failed to auto-save changes', 'error');
+    updateSaveStatusBadge('error');
+  }
+}
+
+function updateSaveStatusBadge(status) {
+  const badge = document.getElementById('saveStatusBadge');
+  if (!badge) return;
+
+  if (status === 'unsaved') {
+    badge.style.display = 'inline-flex';
+    badge.style.background = 'var(--color-warning-bg)';
+    badge.style.color = 'var(--color-warning)';
+    badge.textContent = 'Unsaved changes...';
+  } else if (status === 'saving') {
+    badge.style.display = 'inline-flex';
+    badge.style.background = 'var(--primary-light)';
+    badge.style.color = 'var(--primary)';
+    badge.textContent = 'Saving changes...';
+  } else if (status === 'saved') {
+    badge.style.display = 'inline-flex';
+    badge.style.background = 'var(--color-success-bg)';
+    badge.style.color = 'var(--color-success)';
+    badge.textContent = 'All changes saved ✓';
+    setTimeout(() => {
+      if (pendingChangesMap.size === 0) {
+        badge.style.display = 'none';
+      }
+    }, 2500);
+  } else if (status === 'error') {
+    badge.style.display = 'inline-flex';
+    badge.style.background = 'var(--color-danger-bg)';
+    badge.style.color = 'var(--color-danger)';
+    badge.textContent = 'Save failed!';
+  }
+}
+
+// Flush pending saves on page leave / tab unload
+window.addEventListener('beforeunload', () => { flushPendingSaves(); });
+window.addEventListener('visibilitychange', () => { if (document.hidden) flushPendingSaves(); });
+
 function openTimetableModal(timetableToEdit = null) {
   const formHtml = `
     <form id="timetableForm">
@@ -411,18 +522,9 @@ function openTimetableModal(timetableToEdit = null) {
         <textarea id="ttDescInput" class="form-control" rows="2" placeholder="Brief details about this schedule...">${timetableToEdit ? TaskCard.escapeHtml(timetableToEdit.description || '') : ''}</textarea>
       </div>
 
-      <div class="form-row">
-        <div class="form-group" style="flex:1;">
-          <label class="form-label">Color Accent</label>
-          <input type="color" id="ttColorInput" class="form-control" value="${timetableToEdit ? timetableToEdit.color : '#6366F1'}" style="height:44px; padding:3px; cursor:pointer;">
-        </div>
-
-        <div class="form-group" style="flex:1; display:flex; align-items:center; pt:1.5rem; margin-top:1.5rem;">
-          <label style="display:flex; align-items:center; gap:0.5rem; font-weight:700; cursor:pointer; font-size:0.875rem;">
-            <input type="checkbox" id="ttPrimaryCheckbox" ${timetableToEdit && timetableToEdit.isPrimary ? 'checked' : ''} style="width:18px; height:18px;">
-            Set as Primary Timetable
-          </label>
-        </div>
+      <div class="form-group" style="max-width:200px;">
+        <label class="form-label">Color Accent</label>
+        <input type="color" id="ttColorInput" class="form-control" value="${timetableToEdit ? timetableToEdit.color : '#6366F1'}" style="height:44px; padding:3px; cursor:pointer;">
       </div>
 
       <div style="display:flex; justify-content:flex-end; gap:0.75rem; margin-top:1.5rem;">
@@ -439,8 +541,7 @@ function openTimetableModal(timetableToEdit = null) {
     const payload = {
       title: document.getElementById('ttTitleInput').value.trim(),
       description: document.getElementById('ttDescInput').value.trim(),
-      color: document.getElementById('ttColorInput').value,
-      isPrimary: document.getElementById('ttPrimaryCheckbox').checked
+      color: document.getElementById('ttColorInput').value
     };
 
     try {
@@ -462,13 +563,28 @@ function openTimetableModal(timetableToEdit = null) {
 }
 
 function openSlotModal(slotToEdit = null) {
-  if (!activeTimetableId) {
+  if (cachedTimetables.length === 0) {
     Notifications.show('Please create a timetable first.', 'info');
     return;
   }
 
+  const targetTtId = slotToEdit
+    ? slotToEdit.parentTimetableId
+    : (activeTimetableId !== 'all' ? activeTimetableId : cachedTimetables[0]._id);
+
+  const ttSelectorHtml = (activeTimetableId === 'all' && !slotToEdit) ? `
+    <div class="form-group">
+      <label class="form-label">Target Schedule *</label>
+      <select id="slotTimetableSelect" class="form-control">
+        ${cachedTimetables.map(t => `<option value="${t._id}">${TaskCard.escapeHtml(t.title)}</option>`).join('')}
+      </select>
+    </div>
+  ` : '';
+
   const formHtml = `
     <form id="slotForm">
+      ${ttSelectorHtml}
+
       <div class="form-group">
         <label class="form-label">Title *</label>
         <input type="text" id="slotSubjectInput" class="form-control" placeholder="e.g. Team Standup / Gym / Deep Work" required value="${slotToEdit ? TaskCard.escapeHtml(slotToEdit.subject) : ''}">
@@ -523,6 +639,11 @@ function openSlotModal(slotToEdit = null) {
 
   document.getElementById('slotForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    const selectedTtId = document.getElementById('slotTimetableSelect')
+      ? document.getElementById('slotTimetableSelect').value
+      : targetTtId;
+
     const payload = {
       subject: document.getElementById('slotSubjectInput').value.trim(),
       dayOfWeek: parseInt(document.getElementById('slotDaySelect').value, 10),
@@ -536,10 +657,10 @@ function openSlotModal(slotToEdit = null) {
     try {
       const invalidates = [{ cacheKey: 'timetables', endpoint: '/timetables' }];
       if (slotToEdit) {
-        await SyncManager.mutate('PUT', `/timetables/${activeTimetableId}/slots/${slotToEdit._id}`, payload, { invalidates });
+        await SyncManager.mutate('PUT', `/timetables/${selectedTtId}/slots/${slotToEdit._id}`, payload, { invalidates });
         Notifications.show('Slot updated!', 'success');
       } else {
-        await SyncManager.mutate('POST', `/timetables/${activeTimetableId}/slots`, payload, { invalidates });
+        await SyncManager.mutate('POST', `/timetables/${selectedTtId}/slots`, payload, { invalidates });
         Notifications.show('Slot added!', 'success');
       }
       Modal.close();

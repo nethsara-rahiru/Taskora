@@ -47,13 +47,20 @@ const getDashboardSummary = async (req, res, next) => {
       dueDate: { $gte: startOfToday, $lte: endOfToday }
     }).populate('projectId', 'name color icon').sort({ dueTime: 1, priority: -1 });
 
-    // Today's Timetable Slots (Primary timetable or first active timetable)
+    // Today's Timetable Slots (Gathered from all active timetables)
     let todayTimetableSlots = [];
-    const primaryTimetable = (await Timetable.findOne({ userId, isPrimary: true })) || (await Timetable.findOne({ userId }));
-    if (primaryTimetable && primaryTimetable.slots) {
-      todayTimetableSlots = primaryTimetable.slots.filter(s => s.dayOfWeek === dayOfWeek);
-      todayTimetableSlots.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
-    }
+    const userTimetables = await Timetable.find({ userId });
+    userTimetables.forEach(tt => {
+      if (tt.slots) {
+        const matchingSlots = tt.slots.filter(s => s.dayOfWeek === dayOfWeek).map(s => ({
+          ...s.toObject(),
+          parentTimetableTitle: tt.title,
+          color: s.color || tt.color
+        }));
+        todayTimetableSlots.push(...matchingSlots);
+      }
+    });
+    todayTimetableSlots.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
 
     // High priority focus tasks (high priority, not completed)
     const highPriorityTasks = await Task.find({
