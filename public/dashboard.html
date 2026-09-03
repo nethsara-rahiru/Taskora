@@ -103,17 +103,37 @@
         </div>
 
         <div class="dashboard-sections">
-          <!-- Main Left Column: Today's Timeline Focus -->
-          <div class="dashboard-card">
-            <div class="section-title">
-              <span>Today's Focus List</span>
+          <!-- Main Left Column: Tabbed Focus Panel -->
+          <div class="dashboard-card" style="padding-bottom: 0;">
+            <div class="section-title" style="margin-bottom: 0.5rem;">
+              <span>Focus Timeline</span>
               <a href="/tasks.html" style="font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem;">
-                View All Tasks
+                All Tasks
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
               </a>
             </div>
-            <div id="todayTaskList">
-              <div style="color: var(--text-muted); font-size: 0.9rem; padding: 1.5rem 0; text-align: center;">Loading tasks...</div>
+
+            <!-- Focus Tabs -->
+            <div style="display: flex; gap: 0.25rem; padding: 0.25rem; background: var(--bg-input); border-radius: var(--radius-md); margin-bottom: 1rem; width: fit-content;">
+              <button class="focus-tab-btn active" data-tab="today" id="focusTabToday" style="padding: 0.3rem 0.75rem; font-size: 0.8rem; font-weight: 700; border: none; background: var(--bg-surface); color: var(--primary); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.18s ease; box-shadow: var(--shadow-xs);">Today</button>
+              <button class="focus-tab-btn" data-tab="tomorrow" id="focusTabTomorrow" style="padding: 0.3rem 0.75rem; font-size: 0.8rem; font-weight: 700; border: none; background: transparent; color: var(--text-muted); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.18s ease;">Tomorrow</button>
+              <button class="focus-tab-btn" data-tab="highpri" id="focusTabHighPri" style="padding: 0.3rem 0.75rem; font-size: 0.8rem; font-weight: 700; border: none; background: transparent; color: var(--text-muted); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.18s ease;">🔥 Priority</button>
+            </div>
+
+            <!-- Focus Content Panels -->
+            <div id="focusPanelToday" class="focus-panel"></div>
+            <div id="focusPanelTomorrow" class="focus-panel" style="display:none;"></div>
+            <div id="focusPanelHighPri" class="focus-panel" style="display:none;"></div>
+
+            <!-- Smart Free-Time Suggestion Box -->
+            <div id="freeTimeSuggestion" style="display: none; margin: 0.75rem -1.35rem -1px; padding: 0.85rem 1.35rem; border-top: 1px solid var(--border-color); background: color-mix(in srgb, var(--primary) 5%, var(--bg-surface)); border-radius: 0 0 var(--radius-xl) var(--radius-xl);">
+              <div style="display: flex; align-items: flex-start; gap: 0.6rem;">
+                <span style="font-size: 1.1rem; line-height: 1; margin-top: 0.05rem;">💡</span>
+                <div>
+                  <div style="font-size: 0.72rem; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.2rem;">Best Time to Focus</div>
+                  <div id="freeTimeSuggestionText" style="font-size: 0.82rem; font-weight: 600; color: var(--text-main); line-height: 1.45;"></div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -163,9 +183,220 @@
   <script src="/js/components/task-card.js"></script>
   <script src="/js/app.js"></script>
   <script>
+    // ── Focus Tab Switcher ──
+    let _dashboardData = null;
+    let _activeFocusTab = 'today';
+
+    document.querySelectorAll('.focus-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        _activeFocusTab = btn.dataset.tab;
+        document.querySelectorAll('.focus-tab-btn').forEach(b => {
+          const isActive = b.dataset.tab === _activeFocusTab;
+          b.style.background = isActive ? 'var(--bg-surface)' : 'transparent';
+          b.style.color = isActive ? 'var(--primary)' : 'var(--text-muted)';
+          b.style.boxShadow = isActive ? 'var(--shadow-xs)' : 'none';
+        });
+        document.querySelectorAll('.focus-panel').forEach(p => p.style.display = 'none');
+        const panel = document.getElementById(`focusPanel${_activeFocusTab.charAt(0).toUpperCase() + _activeFocusTab.slice(1)}`);
+        if (panel) {
+          panel.style.display = 'block';
+          panel.classList.remove('tab-fade-in');
+          void panel.offsetWidth;
+          panel.classList.add('tab-fade-in');
+        }
+        // Only show suggestion on today tab
+        updateSuggestionVisibility();
+      });
+    });
+
+    function updateSuggestionVisibility() {
+      const box = document.getElementById('freeTimeSuggestion');
+      if (box) box.style.display = _activeFocusTab === 'today' ? 'block' : 'none';
+    }
+
+    // ── Compact Focus Row Renderer ──
+    // isPast: true = fade item
+    function renderFocusRow(item) {
+      const now = new Date();
+      const nowMins = now.getHours() * 60 + now.getMinutes();
+
+      let isPast = false;
+      let timeLabel = '';
+      let typeTag = '';
+      let typeColor = 'var(--primary)';
+      let typeBg = 'var(--primary-light)';
+      let icon = '📌';
+      let title = '';
+      let subLabel = '';
+
+      if (item._type === 'slot') {
+        // Timetable slot
+        const [eh, em] = (item.endTime || '').split(':').map(Number);
+        const endMins = eh * 60 + (em || 0);
+        isPast = endMins < nowMins;
+        timeLabel = item.startTime && item.endTime ? `${item.startTime}–${item.endTime}` : '';
+        typeTag = 'SLOT';
+        typeColor = '#ffffff';
+        typeBg = item.color || '#6366F1';
+        icon = '🕐';
+        title = item.subject || '';
+        subLabel = [item.room ? `📍 ${item.room}` : '', item.parentTimetableTitle ? item.parentTimetableTitle : ''].filter(Boolean).join(' · ');
+      } else {
+        // Task or event
+        const isEvent = item.itemType === 'event';
+        icon = isEvent ? '📅' : '📌';
+        typeTag = isEvent ? 'EVENT' : 'TASK';
+        typeColor = isEvent ? '#9333EA' : 'var(--primary)';
+        typeBg = isEvent ? 'rgba(147,51,234,0.12)' : 'var(--primary-light)';
+        title = item.title || '';
+
+        if (item.dueTime) {
+          timeLabel = item.dueTime;
+          const [h, m] = item.dueTime.split(':').map(Number);
+          isPast = (h * 60 + m) < nowMins;
+        }
+        const isOverdue = item.dueDate && new Date(item.dueDate) < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        if (isOverdue) {
+          isPast = true;
+          typeTag = 'OVERDUE';
+          typeColor = '#EF4444';
+          typeBg = 'rgba(239,68,68,0.12)';
+        }
+        const priorityColors = { high: '#F97316', urgent: '#EF4444', medium: 'var(--primary)', low: 'var(--color-success)' };
+        subLabel = item.priority ? `● ${item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}` : '';
+      }
+
+      const row = document.createElement('div');
+      row.style.cssText = `
+        display: flex; align-items: center; gap: 0.6rem;
+        padding: 0.45rem 0;
+        border-bottom: 1px solid var(--border-color);
+        opacity: ${isPast ? '0.38' : '1'};
+        transition: opacity 0.2s;
+      `;
+
+      row.innerHTML = `
+        <span style="font-size: 0.85rem; flex-shrink: 0; line-height: 1;">${icon}</span>
+        <div style="min-width: 0; flex: 1;">
+          <div style="font-size: 0.83rem; font-weight: 700; color: var(--text-main);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            ${isPast ? 'text-decoration: line-through; color: var(--text-muted);' : ''}">
+            ${TaskCard.escapeHtml(title)}
+          </div>
+          ${(timeLabel || subLabel) ? `<div style="font-size: 0.7rem; color: var(--text-muted); display: flex; gap: 0.35rem; align-items: center; margin-top: 0.05rem;">
+            ${timeLabel ? `<span>${timeLabel}</span>` : ''}
+            ${timeLabel && subLabel ? `<span style="opacity:0.4;">·</span>` : ''}
+            ${subLabel ? `<span>${subLabel}</span>` : ''}
+          </div>` : ''}
+        </div>
+        <span style="font-size: 0.62rem; font-weight: 800; padding: 0.12rem 0.38rem; border-radius: 4px;
+          background: ${typeBg}; color: ${typeColor}; flex-shrink: 0; white-space: nowrap;">
+          ${typeTag}
+        </span>
+      `;
+      return row;
+    }
+
+    function renderFocusPanel(panelId, tasks, slots, emptyMsg) {
+      const panel = document.getElementById(panelId);
+      if (!panel) return;
+      panel.innerHTML = '';
+
+      // Merge and sort by time
+      const merged = [];
+      slots.forEach(s => merged.push({ ...s, _type: 'slot', _sortTime: s.startTime || '99:99' }));
+      tasks.forEach(t => merged.push({ ...t, _type: 'task', _sortTime: t.dueTime || '99:99' }));
+      merged.sort((a, b) => a._sortTime.localeCompare(b._sortTime));
+
+      if (merged.length === 0) {
+        panel.innerHTML = `<div style="color: var(--text-muted); font-size: 0.82rem; padding: 1.25rem 0; text-align: center;">${emptyMsg}</div>`;
+        return;
+      }
+
+      merged.forEach(item => panel.appendChild(renderFocusRow(item)));
+    }
+
+    // ── Free-Time Suggestion Engine ──
+    function computeFreeSlots(slots, events) {
+      const DAY_START = 8 * 60;  // 08:00
+      const DAY_END   = 22 * 60; // 22:00
+      const MIN_GAP   = 30;      // minutes
+
+      // Parse all occupied blocks
+      const occupied = [];
+      const parseBlock = (startStr, endStr) => {
+        if (!startStr || !endStr) return;
+        const [sh, sm] = startStr.split(':').map(Number);
+        const [eh, em] = endStr.split(':').map(Number);
+        occupied.push({ start: sh * 60 + sm, end: eh * 60 + em });
+      };
+
+      slots.forEach(s => parseBlock(s.startTime, s.endTime));
+      events.forEach(e => { if (e.startTime && e.endTime) parseBlock(e.startTime, e.endTime); });
+      occupied.sort((a, b) => a.start - b.start);
+
+      // Find gaps
+      const freeSlots = [];
+      let cursor = Math.max(DAY_START, new Date().getHours() * 60 + new Date().getMinutes());
+
+      occupied.forEach(block => {
+        if (block.start > cursor && block.start - cursor >= MIN_GAP) {
+          freeSlots.push({ start: cursor, end: block.start });
+        }
+        cursor = Math.max(cursor, block.end);
+      });
+
+      if (DAY_END - cursor >= MIN_GAP) freeSlots.push({ start: cursor, end: DAY_END });
+
+      return freeSlots;
+    }
+
+    function minsToTime(m) {
+      return `${Math.floor(m / 60).toString().padStart(2, '0')}:${(m % 60).toString().padStart(2, '0')}`;
+    }
+
+    function renderFreeTimeSuggestion(todaySlots, todayTasks, pendingTasks) {
+      const box = document.getElementById('freeTimeSuggestion');
+      const text = document.getElementById('freeTimeSuggestionText');
+      if (!box || !text) return;
+
+      // Events with times from todayTasks
+      const todayEvents = todayTasks.filter(t => t.itemType === 'event' && t.startTime);
+
+      const freeSlots = computeFreeSlots(todaySlots, todayEvents);
+      if (freeSlots.length === 0) {
+        box.style.display = 'none';
+        return;
+      }
+
+      // Best free slot = longest gap
+      const best = freeSlots.reduce((a, b) => (b.end - b.start > a.end - a.start ? b : a));
+      const durMins = best.end - best.start;
+
+      // Best pending task = highest priority, due soonest
+      const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+      const candidates = (pendingTasks || [])
+        .filter(t => t.status !== 'completed' && t.itemType !== 'event')
+        .sort((a, b) => (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2));
+
+      const topTask = candidates[0];
+
+      if (topTask) {
+        text.innerHTML = `
+          You have a free window from <b>${minsToTime(best.start)}–${minsToTime(best.end)}</b> (${durMins} min).
+          Great time to work on <b>${TaskCard.escapeHtml(topTask.title)}</b>
+          ${topTask.priority === 'high' || topTask.priority === 'urgent' ? ' — <span style="color:var(--priority-high);font-weight:800;">High Priority!</span>' : ''}.
+        `;
+        box.style.display = _activeFocusTab === 'today' ? 'block' : 'none';
+      } else {
+        box.style.display = 'none';
+      }
+    }
+
     function loadCurrentPageData() {
       SyncManager.load('dashboard', '/dashboard', (data) => {
         if (!data) return;
+        _dashboardData = data;
         const s = data.summary;
 
         document.getElementById('statToday').textContent = s.todayTasks;
@@ -176,11 +407,9 @@
         document.getElementById('statTotalSub').textContent = `${s.totalCompleted} of ${s.totalTasks} Done`;
         document.getElementById('rateProgressBar').style.width = `${s.completionRate}%`;
 
-        // Update welcome heading & motivational quote
+        // Welcome heading & motivational subtitle
         const user = Auth.currentUser;
-        if (user) {
-          document.getElementById('welcomeHeading').textContent = `Good day, ${user.name.split(' ')[0]}!`;
-        }
+        if (user) document.getElementById('welcomeHeading').textContent = `Good day, ${user.name.split(' ')[0]}!`;
 
         const subElem = document.getElementById('motivationalSubtitle');
         const streakElem = document.getElementById('streakBadgeText');
@@ -188,163 +417,53 @@
           if (s.completedToday > 0) {
             subElem.textContent = `⚡ You've completed ${s.completedToday} task${s.completedToday === 1 ? '' : 's'} today! Stay in the flow state and keep crushing your goals.`;
           } else if (s.todayTasks > 0) {
-            subElem.textContent = `🎯 You have ${s.todayTasks} focus task${s.todayTasks === 1 ? '' : 's'} scheduled for today. Ready to take them on?`;
+            subElem.textContent = `🎯 You have ${s.todayTasks} focus item${s.todayTasks === 1 ? '' : 's'} scheduled for today. Ready to take them on?`;
           } else {
             subElem.textContent = `✨ All clear for today! Take a moment to reflect or plan your upcoming week.`;
           }
         }
-        if (streakElem) {
-          streakElem.textContent = s.completedToday > 0 ? `${s.completedToday} Done Today` : `${s.completionRate}% Rate`;
-        }
+        if (streakElem) streakElem.textContent = s.completedToday > 0 ? `${s.completedToday} Done Today` : `${s.completionRate}% Rate`;
 
-        // Render High Priority Urgent Focus Alert
+        // High Priority Alert Banner (compact)
         const highPrioritySection = document.getElementById('highPrioritySection');
         const highPriorityList = document.getElementById('highPriorityTaskList');
         const highPriorityBadge = document.getElementById('highPriorityBadge');
         const highPriorityTasks = data.highPriorityTasks || [];
-
         if (highPrioritySection && highPriorityList) {
           if (highPriorityTasks.length > 0) {
             highPrioritySection.style.display = 'block';
             if (highPriorityBadge) highPriorityBadge.textContent = `${highPriorityTasks.length} Urgent`;
             highPriorityList.innerHTML = '';
-            highPriorityTasks.forEach(task => {
-              const card = TaskCard.render(
-                task,
-                async (id, completed) => {
-                  const endpoint = completed ? `/tasks/${id}/complete` : `/tasks/${id}/uncomplete`;
-                  await SyncManager.mutate('POST', endpoint, null, {
-                    invalidates: [
-                      { cacheKey: 'tasks', endpoint: '/tasks' },
-                      { cacheKey: 'dashboard', endpoint: '/dashboard' }
-                    ]
-                  });
-                  loadCurrentPageData();
-                },
-                (taskToEdit) => App.openTaskModal(taskToEdit),
-                async (id) => {
-                  if (confirm('Delete this item?')) {
-                    await SyncManager.mutate('DELETE', `/tasks/${id}`, null, {
-                      invalidates: [
-                        { cacheKey: 'tasks', endpoint: '/tasks' },
-                        { cacheKey: 'dashboard', endpoint: '/dashboard' }
-                      ]
-                    });
-                    loadCurrentPageData();
-                  }
-                }
-              );
-              highPriorityList.appendChild(card);
-            });
+            highPriorityTasks.slice(0, 3).forEach(task => highPriorityList.appendChild(renderFocusRow(task)));
           } else {
             highPrioritySection.style.display = 'none';
           }
         }
 
-        // Today's Focus List: Tasks, Events & Timetable Slots
-        const todayContainer = document.getElementById('todayTaskList');
-        todayContainer.innerHTML = '';
+        // ── Focus Panels ──
+        const todayTasks = data.todayTasks || [];
+        const todaySlots = data.todayTimetableSlots || [];
+        const tomorrowTasks = data.tomorrowTasks || [];
+        const tomorrowSlots = data.tomorrowTimetableSlots || [];
 
-        const tasks = data.todayTasks || [];
-        const slots = data.todayTimetableSlots || [];
-
-        if (tasks.length === 0 && slots.length === 0) {
-          todayContainer.innerHTML = `
-            <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
-              <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--color-success-bg); color: var(--color-success); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              </div>
-              <p style="font-weight: 700; color: var(--text-main);">All clear for today!</p>
-              <p style="font-size: 0.85rem; margin-top: 0.25rem;">No tasks, events, or timetable slots scheduled for today.</p>
-            </div>
-          `;
-        } else {
-          // Render today's timetable slots section first if available
-          if (slots.length > 0) {
-            const ttHeader = document.createElement('div');
-            ttHeader.style.cssText = 'font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0.5rem 0; display: flex; align-items: center; gap: 0.35rem;';
-            ttHeader.innerHTML = `
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-              Today's Schedule Slots (${slots.length})
-            `;
-            todayContainer.appendChild(ttHeader);
-
-            slots.forEach(slot => {
-              const slotCard = document.createElement('div');
-              slotCard.style.cssText = `
-                background: var(--bg-surface);
-                border: 1px solid var(--border-color);
-                border-left: 4px solid ${slot.color || '#6366F1'};
-                border-radius: var(--radius-md);
-                padding: 0.75rem;
-                margin-bottom: 0.65rem;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                box-shadow: var(--shadow-xs);
-              `;
-
-              slotCard.innerHTML = `
-                <div>
-                  <div style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); display: flex; align-items: center; gap: 0.3rem;">
-                    <span style="background: ${slot.color || '#6366F1'}; color: #fff; padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 800; font-size: 0.65rem;">SCHEDULE</span>
-                    <span>${slot.startTime} – ${slot.endTime}</span>
-                  </div>
-                  <div style="font-size: 0.9rem; font-weight: 800; color: var(--text-main); margin-top: 0.2rem;">${TaskCard.escapeHtml(slot.subject)}</div>
-                  ${(slot.room || slot.teacher) ? `
-                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">
-                      ${slot.room ? `📍 ${TaskCard.escapeHtml(slot.room)}` : ''} ${slot.teacher ? `👤 ${TaskCard.escapeHtml(slot.teacher)}` : ''}
-                    </div>
-                  ` : ''}
-                </div>
-                <a href="/timetables.html" class="btn btn-ghost btn-sm" title="Open Timetables">View →</a>
-              `;
-              todayContainer.appendChild(slotCard);
-            });
-          }
-
-          // Render today's tasks & events
-          if (tasks.length > 0) {
-            const taskHeader = document.createElement('div');
-            taskHeader.style.cssText = 'font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 1rem 0 0.5rem 0; display: flex; align-items: center; gap: 0.35rem;';
-            taskHeader.innerHTML = `
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-              Tasks & Events (${tasks.length})
-            `;
-            todayContainer.appendChild(taskHeader);
-
-            tasks.forEach(task => {
-              const card = TaskCard.render(
-                task,
-                async (id, completed) => {
-                  const endpoint = completed ? `/tasks/${id}/complete` : `/tasks/${id}/uncomplete`;
-                  await SyncManager.mutate('POST', endpoint, null, {
-                    invalidates: [
-                      { cacheKey: 'tasks', endpoint: '/tasks' },
-                      { cacheKey: 'dashboard', endpoint: '/dashboard' }
-                    ]
-                  });
-                  loadCurrentPageData();
-                },
-                (taskToEdit) => App.openTaskModal(taskToEdit),
-                async (id) => {
-                  if (confirm('Delete this item?')) {
-                    await SyncManager.mutate('DELETE', `/tasks/${id}`, null, {
-                      invalidates: [
-                        { cacheKey: 'tasks', endpoint: '/tasks' },
-                        { cacheKey: 'dashboard', endpoint: '/dashboard' }
-                      ]
-                    });
-                    loadCurrentPageData();
-                  }
-                }
-              );
-              todayContainer.appendChild(card);
-            });
+        renderFocusPanel('focusPanelToday', todayTasks, todaySlots, '✅ All clear — no items for today!');
+        renderFocusPanel('focusPanelTomorrow', tomorrowTasks, tomorrowSlots, 'Nothing scheduled for tomorrow yet.');
+        // High-pri panel: use high priority tasks merged with today's items sorted by priority
+        const highPriItems = highPriorityTasks.map(t => ({ ...t, _type: 'task' }));
+        const hpPanel = document.getElementById('focusPanelHighPri');
+        if (hpPanel) {
+          hpPanel.innerHTML = '';
+          if (highPriItems.length === 0) {
+            hpPanel.innerHTML = `<div style="color: var(--text-muted); font-size: 0.82rem; padding: 1.25rem 0; text-align: center;">No high-priority pending tasks. 🎉</div>`;
+          } else {
+            highPriItems.forEach(item => hpPanel.appendChild(renderFocusRow(item)));
           }
         }
 
-        // Render Upcoming Timeline Section
+        // Free-time suggestion
+        renderFreeTimeSuggestion(todaySlots, todayTasks, [...todayTasks, ...tomorrowTasks]);
+
+        // Upcoming Timeline
         const upcomingContainer = document.getElementById('upcomingTimelineList');
         const upcomingTasks = data.upcomingTasks || [];
         if (upcomingContainer) {
@@ -352,30 +471,11 @@
           if (upcomingTasks.length === 0) {
             upcomingContainer.innerHTML = `<div style="color: var(--text-muted); font-size: 0.85rem; padding: 0.5rem 0;">No upcoming items for next 7 days.</div>`;
           } else {
-            upcomingTasks.forEach(item => {
-              const itemDiv = document.createElement('div');
-              itemDiv.style.cssText = 'padding: 0.65rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;';
-              const dateStr = item.dueDate ? new Date(item.dueDate).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '';
-              const isEvent = item.itemType === 'event';
-              itemDiv.innerHTML = `
-                <div style="min-width: 0; flex: 1;">
-                  <div style="font-weight: 700; color: var(--text-main); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
-                    ${isEvent ? '📅' : '📌'} ${TaskCard.escapeHtml(item.title)}
-                  </div>
-                  <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; gap: 0.3rem; margin-top: 0.1rem;">
-                    <span>${dateStr}</span> ${item.dueTime ? `<span>• ${item.dueTime}</span>` : ''}
-                  </div>
-                </div>
-                <span style="font-size: 0.65rem; font-weight: 800; padding: 0.1rem 0.4rem; border-radius: 4px; background: ${isEvent ? 'rgba(147, 51, 234, 0.15)' : 'var(--primary-light)'}; color: ${isEvent ? '#9333EA' : 'var(--primary)'}; flex-shrink: 0;">
-                  ${isEvent ? 'EVENT' : 'TASK'}
-                </span>
-              `;
-              upcomingContainer.appendChild(itemDiv);
-            });
+            upcomingTasks.forEach(item => upcomingContainer.appendChild(renderFocusRow(item)));
           }
         }
 
-        // Recent list
+        // Recent completed
         const recentContainer = document.getElementById('recentList');
         recentContainer.innerHTML = '';
         if (data.recentlyCompleted.length === 0) {
@@ -383,13 +483,13 @@
         } else {
           data.recentlyCompleted.forEach(t => {
             const div = document.createElement('div');
-            div.style.cssText = 'padding: 0.65rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;';
+            div.style.cssText = 'padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.83rem; display: flex; justify-content: space-between; align-items: center;';
             div.innerHTML = `
-              <span style="display:flex; align-items:center; gap:0.4rem; font-weight:600;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span style="display:flex; align-items:center; gap:0.4rem; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 ${TaskCard.escapeHtml(t.title)}
               </span>
-              <span style="color: var(--text-light); font-size: 0.75rem;">${new Date(t.completedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+              <span style="color: var(--text-light); font-size: 0.72rem; flex-shrink: 0; margin-left: 0.5rem;">${new Date(t.completedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
             `;
             recentContainer.appendChild(div);
           });

@@ -45,10 +45,54 @@ async function initTimetablesPage() {
   loadCurrentPageData();
 }
 
+const VIRTUAL_EVENTS_ID = '__virtual_events__';
+
 function loadCurrentPageData() {
   SyncManager.load('timetables', '/timetables', (data) => {
     cachedTimetables = data?.timetables || [];
-    renderTimetablesUI(cachedTimetables);
+    // Load events from tasks API and inject virtual Events schedule
+    loadEventsVirtualSchedule(cachedTimetables, (merged) => {
+      cachedTimetables = merged;
+      renderTimetablesUI(cachedTimetables);
+    });
+  });
+}
+
+function loadEventsVirtualSchedule(baseTimetables, callback) {
+  SyncManager.load('tasks-events', '/tasks?itemType=event', (data) => {
+    const events = data?.tasks || [];
+
+    // Convert events with startTime/endTime and dueDate to slot objects
+    const virtualSlots = [];
+    events.forEach(ev => {
+      if (!ev.startTime || !ev.endTime || !ev.dueDate) return;
+      const dow = new Date(ev.dueDate).getDay(); // 0=Sun
+      virtualSlots.push({
+        _id: ev._id,
+        subject: ev.title,
+        startTime: ev.startTime,
+        endTime: ev.endTime,
+        dayOfWeek: dow,
+        color: '#9333EA',
+        room: '',
+        teacher: '',
+        isVirtual: true
+      });
+    });
+
+    // Build virtual timetable object
+    const virtualTimetable = {
+      _id: VIRTUAL_EVENTS_ID,
+      title: '📅 Events',
+      color: '#9333EA',
+      description: 'Your events, automatically synced to the timeline.',
+      slots: virtualSlots,
+      isVirtual: true
+    };
+
+    // Filter out any previous virtual schedule, then add fresh one
+    const cleaned = baseTimetables.filter(t => t._id !== VIRTUAL_EVENTS_ID);
+    callback([...cleaned, virtualTimetable]);
   });
 }
 
@@ -122,9 +166,11 @@ function renderTimetablesUI(timetables) {
   if (activeTab) activeTab.scrollIntoView({ block: 'nearest', inline: 'center' });
 
   const isAllView = activeTimetableId === 'all';
-  if (addSlotBtn) addSlotBtn.style.display = 'inline-flex';
-  if (editBtn) editBtn.style.display = isAllView ? 'none' : 'inline-flex';
-  if (deleteBtn) deleteBtn.style.display = isAllView ? 'none' : 'inline-flex';
+  const isVirtualView = activeTimetableId === VIRTUAL_EVENTS_ID;
+
+  if (addSlotBtn) addSlotBtn.style.display = (isAllView || isVirtualView) ? 'none' : 'inline-flex';
+  if (editBtn) editBtn.style.display = (isAllView || isVirtualView) ? 'none' : 'inline-flex';
+  if (deleteBtn) deleteBtn.style.display = (isAllView || isVirtualView) ? 'none' : 'inline-flex';
 
   renderWeeklyGrid(cachedTimetables);
 }
@@ -284,23 +330,25 @@ function renderWeeklyGrid(timetablesInput) {
 
       const block = document.createElement('div');
       block.className = `matrix-slot-block${isFaded ? ' faded' : ''}`;
-      block.setAttribute('draggable', 'true');
+      block.setAttribute('draggable', slot.isVirtual ? 'false' : 'true');
       block.style.top = `${topPx + 2}px`;
       block.style.height = `${heightPx - 4}px`;
       block.style.backgroundColor = slotBg;
 
       block.innerHTML = `
-        <div class="slot-block-actions">
-          <button class="slot-block-btn duplicate-slot-btn" title="Duplicate Slot">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-          </button>
-          <button class="slot-block-btn edit-slot-btn" title="Edit Slot">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-          </button>
-          <button class="slot-block-btn delete-slot-btn" title="Delete Slot">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-          </button>
-        </div>
+        ${!slot.isVirtual ? `
+          <div class="slot-block-actions">
+            <button class="slot-block-btn duplicate-slot-btn" title="Duplicate Slot">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+            <button class="slot-block-btn edit-slot-btn" title="Edit Slot">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            </button>
+            <button class="slot-block-btn delete-slot-btn" title="Delete Slot">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          </div>
+        ` : ''}
 
         <div>
           <div class="slot-block-title" title="${TaskCard.escapeHtml(slot.subject)}">${TaskCard.escapeHtml(slot.subject)}</div>
@@ -317,19 +365,21 @@ function renderWeeklyGrid(timetablesInput) {
         ` : ''}
       `;
 
-      // Drag start & end events
-      block.addEventListener('dragstart', (e) => {
-        e.dataTransfer.setData('text/plain', slot._id);
-        e.dataTransfer.setData('parentTimetableId', slot.parentTimetableId);
-        e.dataTransfer.setData('durationMins', durationMins);
-        e.dataTransfer.effectAllowed = 'move';
-        block.classList.add('dragging');
-      });
+      if (!slot.isVirtual) {
+        // Drag start & end events
+        block.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', slot._id);
+          e.dataTransfer.setData('parentTimetableId', slot.parentTimetableId);
+          e.dataTransfer.setData('durationMins', durationMins);
+          e.dataTransfer.effectAllowed = 'move';
+          block.classList.add('dragging');
+        });
 
-      block.addEventListener('dragend', () => {
-        block.classList.remove('dragging');
-        document.querySelectorAll('.matrix-day-col').forEach(c => c.classList.remove('drag-over'));
-      });
+        block.addEventListener('dragend', () => {
+          block.classList.remove('dragging');
+          document.querySelectorAll('.matrix-day-col').forEach(c => c.classList.remove('drag-over'));
+        });
+      }
 
       // Hover Tooltip events
       const tooltip = document.getElementById('slotHoverTooltip');
@@ -366,44 +416,46 @@ function renderWeeklyGrid(timetablesInput) {
         if (tooltip) tooltip.classList.remove('visible');
       });
 
-      // Duplicate button listener
-      block.querySelector('.duplicate-slot-btn').addEventListener('click', async (e) => {
-        e.stopPropagation();
-        try {
-          const duplicatePayload = {
-            subject: `${slot.subject} (Copy)`,
-            dayOfWeek: slot.dayOfWeek,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            room: slot.room,
-            teacher: slot.teacher,
-            color: slot.color
-          };
-          await SyncManager.mutate('POST', `/timetables/${slot.parentTimetableId}/slots`, duplicatePayload, {
-            invalidates: [{ cacheKey: 'timetables', endpoint: '/timetables' }]
-          });
-          Notifications.show('Slot duplicated!', 'success');
-          loadCurrentPageData();
-        } catch (err) {
-          Notifications.show(err.message || 'Failed to duplicate slot', 'error');
-        }
-      });
+      if (!slot.isVirtual) {
+        // Duplicate button listener
+        block.querySelector('.duplicate-slot-btn')?.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          try {
+            const duplicatePayload = {
+              subject: `${slot.subject} (Copy)`,
+              dayOfWeek: slot.dayOfWeek,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              room: slot.room,
+              teacher: slot.teacher,
+              color: slot.color
+            };
+            await SyncManager.mutate('POST', `/timetables/${slot.parentTimetableId}/slots`, duplicatePayload, {
+              invalidates: [{ cacheKey: 'timetables', endpoint: '/timetables' }]
+            });
+            Notifications.show('Slot duplicated!', 'success');
+            loadCurrentPageData();
+          } catch (err) {
+            Notifications.show(err.message || 'Failed to duplicate slot', 'error');
+          }
+        });
 
-      block.querySelector('.edit-slot-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        openSlotModal(slot);
-      });
+        block.querySelector('.edit-slot-btn')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openSlotModal(slot);
+        });
 
-      block.querySelector('.delete-slot-btn').addEventListener('click', async (e) => {
-        e.stopPropagation();
-        if (confirm(`Delete "${slot.subject}"?`)) {
-          await SyncManager.mutate('DELETE', `/timetables/${slot.parentTimetableId}/slots/${slot._id}`, null, {
-            invalidates: [{ cacheKey: 'timetables', endpoint: '/timetables' }]
-          });
-          Notifications.show('Slot removed', 'info');
-          loadCurrentPageData();
-        }
-      });
+        block.querySelector('.delete-slot-btn')?.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (confirm(`Delete "${slot.subject}"?`)) {
+            await SyncManager.mutate('DELETE', `/timetables/${slot.parentTimetableId}/slots/${slot._id}`, null, {
+              invalidates: [{ cacheKey: 'timetables', endpoint: '/timetables' }]
+            });
+            Notifications.show('Slot removed', 'info');
+            loadCurrentPageData();
+          }
+        });
+      }
 
       dayCol.appendChild(block);
     });
@@ -417,6 +469,8 @@ const pendingChangesMap = new Map(); // key: slotId -> { parentTtId, slotId, day
 let saveDebounceTimer = null;
 
 function updateSlotOptimistically(parentTtId, slotId, dayOfWeek, startTime, endTime) {
+  if (parentTtId === VIRTUAL_EVENTS_ID) return;
+
   // 1. Update in-memory cache optimistically
   const tt = cachedTimetables.find(t => t._id === parentTtId);
   if (tt && tt.slots) {

@@ -83,6 +83,30 @@ const getDashboardSummary = async (req, res, next) => {
       status: 'completed'
     }).populate('projectId', 'name color icon').sort({ completedAt: -1 }).limit(5);
 
+    // Tomorrow's tasks & events
+    const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const endOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 23, 59, 59, 999);
+    const tomorrowDayOfWeek = (dayOfWeek + 1) % 7;
+
+    const tomorrowTasks = await Task.find({
+      userId,
+      dueDate: { $gte: startOfTomorrow, $lte: endOfTomorrow },
+      status: { $ne: 'completed' }
+    }).populate('projectId', 'name color icon').sort({ dueTime: 1, priority: -1 }).limit(10);
+
+    let tomorrowTimetableSlots = [];
+    userTimetables.forEach(tt => {
+      if (tt.slots) {
+        const matchingSlots = tt.slots.filter(s => s.dayOfWeek === tomorrowDayOfWeek).map(s => ({
+          ...s.toObject(),
+          parentTimetableTitle: tt.title,
+          color: s.color || tt.color
+        }));
+        tomorrowTimetableSlots.push(...matchingSlots);
+      }
+    });
+    tomorrowTimetableSlots.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+
     // Active projects count
     const projectsCount = await Project.countDocuments({ userId, archived: false });
 
@@ -102,6 +126,8 @@ const getDashboardSummary = async (req, res, next) => {
         },
         todayTasks,
         todayTimetableSlots,
+        tomorrowTasks,
+        tomorrowTimetableSlots,
         highPriorityTasks,
         upcomingTasks,
         recentlyCompleted
