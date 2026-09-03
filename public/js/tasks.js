@@ -19,12 +19,22 @@ async function loadProjectsDropdown() {
   });
 }
 
+function triggerContainerAnimation() {
+  const container = document.getElementById('taskList') || document.getElementById('kanbanBoard');
+  if (container) {
+    container.classList.remove('tab-fade-in');
+    void container.offsetWidth;
+    container.classList.add('tab-fade-in');
+  }
+}
+
 function setupEventListeners() {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       e.target.classList.add('active');
       currentView = e.target.dataset.view;
+      triggerContainerAnimation();
       loadCurrentPageData();
     });
   });
@@ -36,6 +46,7 @@ function setupEventListeners() {
     currentLayout = 'list';
     listViewBtn.classList.add('active');
     kanbanViewBtn?.classList.remove('active');
+    triggerContainerAnimation();
     loadCurrentPageData();
   });
 
@@ -43,6 +54,7 @@ function setupEventListeners() {
     currentLayout = 'kanban';
     kanbanViewBtn.classList.add('active');
     listViewBtn?.classList.remove('active');
+    triggerContainerAnimation();
     loadCurrentPageData();
   });
 
@@ -217,5 +229,4 @@ function renderKanbanBoard(container, tasks) {
 }
 
 document.addEventListener('DOMContentLoaded', initTasksPage);
-window.initTasksPage = initTasksPage;
 window.loadCurrentPageData = loadCurrentPageData;

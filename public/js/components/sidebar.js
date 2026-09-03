@@ -67,23 +67,6 @@ const Sidebar = {
     const sidebarElem = document.querySelector('.sidebar');
     if (sidebarElem) {
       sidebarElem.innerHTML = sidebarHtml;
-
-      // Attach SPA navigation click handlers
-      sidebarElem.querySelectorAll('.nav-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-          const href = item.getAttribute('href');
-          if (href && href.endsWith('.html')) {
-            e.preventDefault();
-            this.closeMobileDrawer();
-            if (typeof Router !== 'undefined') {
-              Router.navigate(href);
-            } else {
-              window.location.href = href;
-            }
-          }
-        });
-      });
-
       document.getElementById('logoutBtn')?.addEventListener('click', () => Auth.logout());
       document.getElementById('mobileSidebarCloseBtn')?.addEventListener('click', () => this.closeMobileDrawer());
     }

@@ -421,5 +421,4 @@ function openSlotModal(slotToEdit = null) {
 }
 
 document.addEventListener('DOMContentLoaded', initTimetablesPage);
-window.initTimetablesPage = initTimetablesPage;
 window.loadCurrentPageData = loadCurrentPageData;
