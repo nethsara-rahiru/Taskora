@@ -17,6 +17,7 @@ const tagRoutes = require('./routes/tag.routes');
 const reminderRoutes = require('./routes/reminder.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const whatsappRoutes = require('./routes/whatsapp.routes');
+const timetableRoutes = require('./routes/timetable.routes');
 
 const app = express();
 
@@ -44,6 +45,7 @@ app.use('/api/tags', tagRoutes);
 app.use('/api/reminders', reminderRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
+app.use('/api/timetables', timetableRoutes);
 
 // Fallback to index.html for direct SPA routing if needed
 app.get('*', (req, res, next) => {

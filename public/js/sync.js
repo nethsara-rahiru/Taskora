@@ -1,6 +1,6 @@
 /**
  * SyncManager - Handles stale-while-revalidate data fetching, background polling,
- * online/offline sync, and offline mutation queue replay.
+ * mobile lifecycle integration, and offline mutation queue replay.
  */
 const SyncManager = {
   // Map of cacheKey -> Set of subscriber callbacks
@@ -12,11 +12,14 @@ const SyncManager = {
   // Default TTL: 2 minutes
   DEFAULT_TTL_MS: 2 * 60 * 1000,
 
-  // Background poll period: 30 seconds
-  POLL_INTERVAL_MS: 30 * 1000,
+  // Snappy poll period for mobile & desktop: 15 seconds
+  POLL_INTERVAL_MS: 15 * 1000,
 
-  // Tracks in-flight fetches to avoid duplicate requests
+  // Tracks in-flight fetches to avoid duplicate concurrent requests
   _inFlight: {},
+
+  // Debounce timer for mobile resume events
+  _resumeDebounceTimer: null,
 
   /**
    * Subscribe to data updates for a specific cache key.
@@ -64,10 +67,6 @@ const SyncManager = {
 
   /**
    * Stale-While-Revalidate: Instantly return cached data, then fetch fresh in background.
-   * @param {string} cacheKey - Unique key for cache storage
-   * @param {string} endpoint - API endpoint to fetch fresh data from
-   * @param {function} callback - Called with data immediately (from cache) and again when fresh data arrives
-   * @param {number} ttlMs - How old the cache must be before forcing background refresh
    */
   async load(cacheKey, endpoint, callback, ttlMs = this.DEFAULT_TTL_MS) {
     // 1. Serve from cache immediately if available
@@ -91,7 +90,7 @@ const SyncManager = {
   },
 
   /**
-   * Force refresh a single cache key from server now (e.g. after a mutation)
+   * Force refresh a single cache key from server now
    */
   async invalidate(cacheKey, endpoint) {
     StorageManager.remove(cacheKey);
@@ -99,19 +98,36 @@ const SyncManager = {
   },
 
   /**
+   * Instantly revalidate all registered polling keys (used on mobile app resume/focus/online)
+   */
+  async forceRefreshAll() {
+    if (!navigator.onLine || !this._polledKeys) return;
+    for (const { cacheKey, endpoint } of this._polledKeys) {
+      await this._fetchAndCache(cacheKey, endpoint);
+    }
+  },
+
+  /**
+   * Debounced version of forceRefreshAll to prevent burst network calls on mobile resume
+   */
+  triggerMobileResumeSync() {
+    clearTimeout(this._resumeDebounceTimer);
+    this._resumeDebounceTimer = setTimeout(() => {
+      this.forceRefreshAll();
+    }, 200);
+  },
+
+  /**
    * Start the background polling interval
    */
   startPolling(keys) {
-    // keys: array of { cacheKey, endpoint }
     this._polledKeys = keys || [];
 
     if (this._pollInterval) clearInterval(this._pollInterval);
 
     this._pollInterval = setInterval(async () => {
       if (!navigator.onLine) return;
-      for (const { cacheKey, endpoint } of this._polledKeys) {
-        await this._fetchAndCache(cacheKey, endpoint);
-      }
+      await this.forceRefreshAll();
     }, this.POLL_INTERVAL_MS);
   },
 
@@ -123,27 +139,33 @@ const SyncManager = {
   },
 
   /**
-   * Register network event listeners to sync on reconnect and tab focus
+   * Register mobile & desktop lifecycle event listeners for 0-delay sync
    */
   initNetworkListeners() {
-    // Sync when coming back online
+    // 1. Reconnect listener
     window.addEventListener('online', async () => {
-      console.info('[SyncManager] Back online — replaying offline queue and refreshing data.');
+      console.info('[SyncManager] Network online — replaying offline queue and syncing instantly.');
       await this.replayOfflineQueue();
-      for (const { cacheKey, endpoint } of (this._polledKeys || [])) {
-        await this._fetchAndCache(cacheKey, endpoint);
+      this.triggerMobileResumeSync();
+    });
+
+    // 2. Page Visibility API (Mobile & Desktop tab switch)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        this.triggerMobileResumeSync();
       }
     });
 
-    // Sync when tab becomes visible again
-    document.addEventListener('visibilitychange', async () => {
-      if (document.visibilityState === 'visible' && navigator.onLine) {
-        for (const { cacheKey, endpoint } of (this._polledKeys || [])) {
-          if (StorageManager.isStale(cacheKey, 60 * 1000)) {
-            await this._fetchAndCache(cacheKey, endpoint);
-          }
-        }
+    // 3. Mobile Safari/Chrome bfcache restoration event (when returning from another app or page)
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted || document.visibilityState === 'visible') {
+        this.triggerMobileResumeSync();
       }
+    });
+
+    // 4. Window Focus event (Mobile app unlock / screen wake up / window focus)
+    window.addEventListener('focus', () => {
+      this.triggerMobileResumeSync();
     });
   },
 
@@ -166,7 +188,6 @@ const SyncManager = {
         } else if (action.method === 'DELETE') {
           await API.delete(action.endpoint);
         }
-        console.info('[SyncManager] Replayed offline action:', action.endpoint);
       } catch (err) {
         console.warn('[SyncManager] Failed to replay action:', action.endpoint, err.message);
         remaining.push(action);
@@ -175,26 +196,19 @@ const SyncManager = {
 
     StorageManager.saveOfflineQueue(remaining);
 
-    if (remaining.length === 0) {
-      if (window.Notifications) {
-        Notifications.show('Your offline changes have been synced!', 'success');
-      }
+    if (remaining.length === 0 && window.Notifications) {
+      Notifications.show('Your offline changes have been synced!', 'success');
     }
   },
 
   /**
-   * Wrap a mutation (POST/PUT/DELETE) with offline queue support.
-   * If offline, queues action for later. If online, executes immediately.
-   * @param {string} method - 'POST', 'PUT', or 'DELETE'
-   * @param {string} endpoint - API endpoint
-   * @param {object|null} body - Request body (for POST/PUT)
-   * @param {object} opts - { optimisticUpdate: fn, invalidates: [{cacheKey, endpoint}] }
+   * Wrap a mutation (POST/PUT/DELETE) with offline queue support and instant cache invalidation
    */
   async mutate(method, endpoint, body = null, opts = {}) {
     if (!navigator.onLine) {
       StorageManager.enqueueOfflineAction({ method, endpoint, body });
       if (window.Notifications) {
-        Notifications.show('You are offline. Changes will sync when you reconnect.', 'info');
+        Notifications.show('You are offline. Changes will sync when reconnected.', 'info');
       }
       return null;
     }
@@ -204,7 +218,7 @@ const SyncManager = {
     else if (method === 'PUT') result = await API.put(endpoint, body);
     else if (method === 'DELETE') result = await API.delete(endpoint);
 
-    // Invalidate related caches
+    // Invalidate related caches immediately
     if (opts.invalidates) {
       for (const { cacheKey, endpoint: ep } of opts.invalidates) {
         await this.invalidate(cacheKey, ep);

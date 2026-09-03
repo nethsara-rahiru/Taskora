@@ -70,6 +70,29 @@ const StorageManager = {
   },
 
   /**
+   * Optimistically update a single task item in cached 'tasks' object/array
+   */
+  updateTaskInCache(taskId, patch) {
+    const cached = this.get('tasks');
+    if (!cached || !cached.tasks) return;
+    const idx = cached.tasks.findIndex(t => t._id === taskId);
+    if (idx !== -1) {
+      cached.tasks[idx] = { ...cached.tasks[idx], ...patch };
+      this.save('tasks', cached);
+    }
+  },
+
+  /**
+   * Optimistically remove a task item from cached 'tasks'
+   */
+  removeTaskFromCache(taskId) {
+    const cached = this.get('tasks');
+    if (!cached || !cached.tasks) return;
+    cached.tasks = cached.tasks.filter(t => t._id !== taskId);
+    this.save('tasks', cached);
+  },
+
+  /**
    * Clear all taskora cache items
    */
   clearAllCache() {

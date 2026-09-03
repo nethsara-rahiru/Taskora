@@ -124,6 +124,10 @@ function renderListView(container, tasks) {
     const card = TaskCard.render(
       task,
       async (id, completed) => {
+        // Optimistic update for instant 0ms mobile UI response
+        StorageManager.updateTaskInCache(id, { status: completed ? 'completed' : 'pending' });
+        loadCurrentPageData();
+
         const endpoint = completed ? `/tasks/${id}/complete` : `/tasks/${id}/uncomplete`;
         await SyncManager.mutate('POST', endpoint, null, {
           invalidates: [
@@ -131,19 +135,21 @@ function renderListView(container, tasks) {
             { cacheKey: 'dashboard', endpoint: '/dashboard' }
           ]
         });
-        loadCurrentPageData();
       },
       (taskToEdit) => App.openTaskModal(taskToEdit),
       async (id) => {
-        if (confirm('Are you sure you want to delete this task?')) {
+        if (confirm('Are you sure you want to delete this item?')) {
+          // Optimistic update for instant 0ms mobile UI response
+          StorageManager.removeTaskFromCache(id);
+          loadCurrentPageData();
+
           await SyncManager.mutate('DELETE', `/tasks/${id}`, null, {
             invalidates: [
               { cacheKey: 'tasks', endpoint: '/tasks' },
               { cacheKey: 'dashboard', endpoint: '/dashboard' }
             ]
           });
-          Notifications.show('Task deleted', 'info');
-          loadCurrentPageData();
+          Notifications.show('Item deleted', 'info');
         }
       }
     );
@@ -180,19 +186,23 @@ function renderKanbanBoard(container, tasks) {
         const card = TaskCard.render(
           task,
           async (id, completed) => {
+            StorageManager.updateTaskInCache(id, { status: completed ? 'completed' : 'pending' });
+            loadCurrentPageData();
+
             const endpoint = completed ? `/tasks/${id}/complete` : `/tasks/${id}/uncomplete`;
             await SyncManager.mutate('POST', endpoint, null, {
               invalidates: [{ cacheKey: 'tasks', endpoint: '/tasks' }]
             });
-            loadCurrentPageData();
           },
           (taskToEdit) => App.openTaskModal(taskToEdit),
           async (id) => {
-            if (confirm('Delete task?')) {
+            if (confirm('Delete item?')) {
+              StorageManager.removeTaskFromCache(id);
+              loadCurrentPageData();
+
               await SyncManager.mutate('DELETE', `/tasks/${id}`, null, {
                 invalidates: [{ cacheKey: 'tasks', endpoint: '/tasks' }]
               });
-              loadCurrentPageData();
             }
           }
         );

@@ -1,5 +1,6 @@
 const Task = require('../models/Task');
 const Project = require('../models/Project');
+const Timetable = require('../models/Timetable');
 
 const getDashboardSummary = async (req, res, next) => {
   try {
@@ -8,6 +9,7 @@ const getDashboardSummary = async (req, res, next) => {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
 
     // Counts
     const todayTasksCount = await Task.countDocuments({
@@ -39,11 +41,34 @@ const getDashboardSummary = async (req, res, next) => {
     const totalCompleted = await Task.countDocuments({ userId, status: 'completed' });
     const completionRate = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
 
-    // Today's list
+    // Today's list (Tasks & Events)
     const todayTasks = await Task.find({
       userId,
       dueDate: { $gte: startOfToday, $lte: endOfToday }
     }).populate('projectId', 'name color icon').sort({ dueTime: 1, priority: -1 });
+
+    // Today's Timetable Slots (Primary timetable or first active timetable)
+    let todayTimetableSlots = [];
+    const primaryTimetable = (await Timetable.findOne({ userId, isPrimary: true })) || (await Timetable.findOne({ userId }));
+    if (primaryTimetable && primaryTimetable.slots) {
+      todayTimetableSlots = primaryTimetable.slots.filter(s => s.dayOfWeek === dayOfWeek);
+      todayTimetableSlots.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+    }
+
+    // High priority focus tasks (high priority, not completed)
+    const highPriorityTasks = await Task.find({
+      userId,
+      priority: 'high',
+      status: { $ne: 'completed' }
+    }).populate('projectId', 'name color icon').sort({ dueDate: 1 }).limit(5);
+
+    // Upcoming tasks & events (next 7 days)
+    const nextWeek = new Date(endOfToday.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const upcomingTasks = await Task.find({
+      userId,
+      dueDate: { $gt: endOfToday, $lte: nextWeek },
+      status: { $ne: 'completed' }
+    }).populate('projectId', 'name color icon').sort({ dueDate: 1, dueTime: 1 }).limit(6);
 
     // Recently completed
     const recentlyCompleted = await Task.find({
@@ -58,16 +83,20 @@ const getDashboardSummary = async (req, res, next) => {
       success: true,
       data: {
         summary: {
-          todayTasks: todayTasksCount,
+          todayTasks: todayTasksCount + todayTimetableSlots.length,
           completedToday: completedTodayCount,
           overdue: overdueCount,
           upcoming: upcomingCount,
+          highPriorityCount: highPriorityTasks.length,
           totalTasks,
           totalCompleted,
           completionRate,
           projectsCount
         },
         todayTasks,
+        todayTimetableSlots,
+        highPriorityTasks,
+        upcomingTasks,
         recentlyCompleted
       }
     });

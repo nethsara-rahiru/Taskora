@@ -24,7 +24,8 @@ const App = {
     SyncManager.startPolling([
       { cacheKey: 'tasks', endpoint: '/tasks' },
       { cacheKey: 'projects', endpoint: '/projects' },
-      { cacheKey: 'dashboard', endpoint: '/dashboard' }
+      { cacheKey: 'dashboard', endpoint: '/dashboard' },
+      { cacheKey: 'timetables', endpoint: '/timetables' }
     ]);
     // Register online/offline + visibility listeners
     SyncManager.initNetworkListeners();
