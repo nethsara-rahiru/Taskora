@@ -9,6 +9,11 @@ const getTasks = async (userId, filters = {}) => {
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
+  // Filter by item type (task vs event)
+  if (filters.itemType) {
+    query.itemType = filters.itemType;
+  }
+
   if (filters.view === 'today') {
     query.dueDate = { $gte: startOfToday, $lte: endOfToday };
     if (!filters.status) query.status = { $ne: 'completed' };
@@ -18,6 +23,7 @@ const getTasks = async (userId, filters = {}) => {
   } else if (filters.view === 'overdue') {
     query.dueDate = { $lt: startOfToday };
     query.status = { $nin: ['completed', 'cancelled'] };
+    query.itemType = 'task'; // Events never become overdue!
   } else if (filters.view === 'completed') {
     query.status = 'completed';
   }
@@ -202,6 +208,47 @@ const handleRecurringNextTask = async (task) => {
   });
 };
 
+/**
+ * Finds all active events whose event end time / date has passed, and automatically
+ * marks them as completed with autoCompleted = true.
+ */
+const autoCompleteExpiredEvents = async () => {
+  const now = new Date();
+  
+  // Find events that are still pending / in_progress
+  const activeEvents = await Task.find({
+    itemType: 'event',
+    status: { $nin: ['completed', 'cancelled'] },
+    dueDate: { $ne: null }
+  });
+
+  let completedCount = 0;
+
+  for (const event of activeEvents) {
+    let eventEndTime = new Date(event.dueDate);
+
+    // If endTime (or dueTime) specified, parse HH:mm
+    const timeStr = event.endTime || event.dueTime;
+    if (timeStr && timeStr.includes(':')) {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      eventEndTime.setHours(hours, minutes, 59, 999);
+    } else {
+      // Default to end of day if no time specified
+      eventEndTime.setHours(23, 59, 59, 999);
+    }
+
+    if (now > eventEndTime) {
+      event.status = 'completed';
+      event.autoCompleted = true;
+      event.completedAt = new Date();
+      await event.save();
+      completedCount++;
+    }
+  }
+
+  return completedCount;
+};
+
 module.exports = {
   getTasks,
   getTaskById,
@@ -209,5 +256,6 @@ module.exports = {
   updateTask,
   deleteTask,
   toggleCompleteTask,
-  handleRecurringNextTask
+  handleRecurringNextTask,
+  autoCompleteExpiredEvents
 };

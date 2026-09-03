@@ -24,6 +24,7 @@ const getDashboardSummary = async (req, res, next) => {
 
     const overdueCount = await Task.countDocuments({
       userId,
+      itemType: 'task',
       dueDate: { $lt: startOfToday },
       status: { $nin: ['completed', 'cancelled'] }
     });

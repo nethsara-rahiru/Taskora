@@ -8,14 +8,15 @@ async function initTasksPage() {
 }
 
 async function loadProjectsDropdown() {
-  try {
-    const data = await API.get('/projects');
+  // Use SyncManager to serve from cache immediately, revalidate in background
+  SyncManager.load('projects', '/projects', (data) => {
+    const projects = data?.projects || [];
     const select = document.getElementById('projectFilter');
-    if (select && data.projects) {
+    if (select) {
       select.innerHTML = '<option value="">All Projects</option>' +
-        data.projects.map(p => `<option value="${p._id}">${TaskCard.escapeHtml(p.name)}</option>`).join('');
+        projects.map(p => `<option value="${p._id}">${TaskCard.escapeHtml(p.name)}</option>`).join('');
     }
-  } catch (e) {}
+  });
 }
 
 function setupEventListeners() {
@@ -47,6 +48,7 @@ function setupEventListeners() {
 
   const searchInput = document.getElementById('searchInput');
   const projectFilter = document.getElementById('projectFilter');
+  const itemTypeFilter = document.getElementById('itemTypeFilter');
   const priorityFilter = document.getElementById('priorityFilter');
   const sortFilter = document.getElementById('sortFilter');
 
@@ -57,6 +59,7 @@ function setupEventListeners() {
   });
 
   projectFilter?.addEventListener('change', loadCurrentPageData);
+  itemTypeFilter?.addEventListener('change', loadCurrentPageData);
   priorityFilter?.addEventListener('change', loadCurrentPageData);
   sortFilter?.addEventListener('change', loadCurrentPageData);
 }
@@ -67,6 +70,7 @@ async function loadCurrentPageData() {
 
   const search = document.getElementById('searchInput')?.value.trim() || '';
   const projectId = document.getElementById('projectFilter')?.value || '';
+  const itemType = document.getElementById('itemTypeFilter')?.value || '';
   const priority = document.getElementById('priorityFilter')?.value || '';
   const sortBy = document.getElementById('sortFilter')?.value || 'createdAt';
 
@@ -74,12 +78,24 @@ async function loadCurrentPageData() {
   if (currentView !== 'all') queryParams.append('view', currentView);
   if (search) queryParams.append('search', search);
   if (projectId) queryParams.append('projectId', projectId);
+  if (itemType) queryParams.append('itemType', itemType);
   if (priority) queryParams.append('priority', priority);
   if (sortBy) queryParams.append('sortBy', sortBy);
 
-  try {
-    const data = await API.get(`/tasks?${queryParams.toString()}`);
-    const tasks = data.tasks || [];
+  const queryString = queryParams.toString();
+  const endpoint = `/tasks${queryString ? '?' + queryString : ''}`;
+
+  // Stale-while-revalidate: render from cache immediately, then update with fresh data
+  const hasFilters = search || projectId || itemType || priority || sortBy !== 'createdAt' || currentView !== 'all';
+  const cacheKey = hasFilters ? 'tasks_filtered_' + queryString : 'tasks';
+
+  SyncManager.load(cacheKey, endpoint, (data, meta) => {
+    const tasks = data?.tasks || [];
+
+    // Show subtle "Refreshing..." indicator on background fetch (not on initial cache load)
+    if (!meta?.fromCache) {
+      container.querySelectorAll('.task-card-stale-overlay')?.forEach(el => el.remove());
+    }
 
     container.innerHTML = '';
     if (tasks.length === 0) {
@@ -100,9 +116,7 @@ async function loadCurrentPageData() {
     } else {
       renderListView(container, tasks);
     }
-  } catch (err) {
-    Notifications.show(err.message, 'error');
-  }
+  });
 }
 
 function renderListView(container, tasks) {
@@ -111,13 +125,23 @@ function renderListView(container, tasks) {
       task,
       async (id, completed) => {
         const endpoint = completed ? `/tasks/${id}/complete` : `/tasks/${id}/uncomplete`;
-        await API.post(endpoint);
+        await SyncManager.mutate('POST', endpoint, null, {
+          invalidates: [
+            { cacheKey: 'tasks', endpoint: '/tasks' },
+            { cacheKey: 'dashboard', endpoint: '/dashboard' }
+          ]
+        });
         loadCurrentPageData();
       },
       (taskToEdit) => App.openTaskModal(taskToEdit),
       async (id) => {
         if (confirm('Are you sure you want to delete this task?')) {
-          await API.delete(`/tasks/${id}`);
+          await SyncManager.mutate('DELETE', `/tasks/${id}`, null, {
+            invalidates: [
+              { cacheKey: 'tasks', endpoint: '/tasks' },
+              { cacheKey: 'dashboard', endpoint: '/dashboard' }
+            ]
+          });
           Notifications.show('Task deleted', 'info');
           loadCurrentPageData();
         }
@@ -157,13 +181,17 @@ function renderKanbanBoard(container, tasks) {
           task,
           async (id, completed) => {
             const endpoint = completed ? `/tasks/${id}/complete` : `/tasks/${id}/uncomplete`;
-            await API.post(endpoint);
+            await SyncManager.mutate('POST', endpoint, null, {
+              invalidates: [{ cacheKey: 'tasks', endpoint: '/tasks' }]
+            });
             loadCurrentPageData();
           },
           (taskToEdit) => App.openTaskModal(taskToEdit),
           async (id) => {
             if (confirm('Delete task?')) {
-              await API.delete(`/tasks/${id}`);
+              await SyncManager.mutate('DELETE', `/tasks/${id}`, null, {
+                invalidates: [{ cacheKey: 'tasks', endpoint: '/tasks' }]
+              });
               loadCurrentPageData();
             }
           }

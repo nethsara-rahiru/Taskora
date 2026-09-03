@@ -11,11 +11,31 @@ const App = {
       this.initThemeToggle();
       this.initMobileFab();
       this.startNotificationPoller();
+      this.initDataSync();
 
       if (typeof window.loadCurrentPageData === 'function') {
         window.loadCurrentPageData();
       }
     }
+  },
+
+  initDataSync() {
+    // Start background polling for core data
+    SyncManager.startPolling([
+      { cacheKey: 'tasks', endpoint: '/tasks' },
+      { cacheKey: 'projects', endpoint: '/projects' },
+      { cacheKey: 'dashboard', endpoint: '/dashboard' }
+    ]);
+    // Register online/offline + visibility listeners
+    SyncManager.initNetworkListeners();
+
+    // Show offline/online banner
+    window.addEventListener('offline', () => {
+      Notifications.show('You are offline. Data will sync when reconnected.', 'info');
+    });
+    window.addEventListener('online', () => {
+      Notifications.show('Back online!', 'success');
+    });
   },
 
   applySavedTheme() {
@@ -102,14 +122,37 @@ const App = {
   },
 
   async openTaskModal(taskToEdit = null) {
-    const projectsData = await API.get('/projects').catch(() => ({ projects: [] }));
-    const projects = projectsData.projects || [];
+    // Load projects from cache first, then fall back to API
+    let projects = [];
+    const cachedProjects = StorageManager.get('projects') || StorageManager.get('req_/projects');
+    if (cachedProjects) {
+      projects = cachedProjects.projects || [];
+    } else {
+      const projectsData = await API.get('/projects').catch(() => ({ projects: [] }));
+      projects = projectsData.projects || [];
+    }
+
+    const currentItemType = taskToEdit ? (taskToEdit.itemType || 'task') : 'task';
 
     const formHtml = `
       <form id="taskForm">
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label" style="font-weight: 700;">Type of Entry</label>
+          <div style="display: flex; gap: 0.5rem; background: var(--bg-input); padding: 0.3rem; border-radius: var(--radius-md);">
+            <label style="flex: 1; text-align: center; padding: 0.5rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; font-weight: 700; transition: var(--transition-fast);" id="typeTaskLabel" class="${currentItemType === 'task' ? 'active-type-pill' : ''}">
+              <input type="radio" name="itemTypeRadio" value="task" ${currentItemType === 'task' ? 'checked' : ''} style="display: none;">
+              ☑ Task (Must complete)
+            </label>
+            <label style="flex: 1; text-align: center; padding: 0.5rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; font-weight: 700; transition: var(--transition-fast);" id="typeEventLabel" class="${currentItemType === 'event' ? 'active-type-pill' : ''}">
+              <input type="radio" name="itemTypeRadio" value="event" ${currentItemType === 'event' ? 'checked' : ''} style="display: none;">
+              📅 Event (Ends automatically)
+            </label>
+          </div>
+        </div>
+
         <div class="form-group">
-          <label class="form-label">Task Title *</label>
-          <input type="text" id="taskTitleInput" class="form-control" placeholder="What needs to be done?" required value="${taskToEdit ? TaskCard.escapeHtml(taskToEdit.title) : ''}">
+          <label class="form-label" id="titleFieldLabel">${currentItemType === 'event' ? 'Event Title *' : 'Task Title *'}</label>
+          <input type="text" id="taskTitleInput" class="form-control" placeholder="${currentItemType === 'event' ? 'e.g. Team Sync Meeting' : 'What needs to be done?'}" required value="${taskToEdit ? TaskCard.escapeHtml(taskToEdit.title) : ''}">
         </div>
 
         <div class="form-group">
@@ -139,13 +182,13 @@ const App = {
 
         <div class="form-row">
           <div class="form-group" style="flex:1;">
-            <label class="form-label">Due Date</label>
+            <label class="form-label" id="dateFieldLabel">${currentItemType === 'event' ? 'Event Date' : 'Due Date'}</label>
             <input type="date" id="taskDueDateInput" class="form-control" value="${taskToEdit && taskToEdit.dueDate ? new Date(taskToEdit.dueDate).toISOString().split('T')[0] : ''}">
           </div>
 
-          <div class="form-group" style="flex:1;">
-            <label class="form-label">Due Time</label>
-            <input type="time" id="taskDueTimeInput" class="form-control" value="${taskToEdit ? taskToEdit.dueTime || '' : ''}">
+          <div class="form-group" style="flex:1;" id="taskDueTimeGroup">
+            <label class="form-label">Time</label>
+            <input type="time" id="taskDueTimeInput" class="form-control" value="${taskToEdit ? taskToEdit.dueTime || taskToEdit.startTime || '' : ''}">
           </div>
         </div>
 
@@ -153,7 +196,7 @@ const App = {
           <div class="form-group" style="flex:1;">
             <label class="form-label">Reminder</label>
             <select id="taskReminderSelect" class="form-control">
-              <option value="0">At due time</option>
+              <option value="0">At scheduled time</option>
               <option value="15" selected>15 minutes before</option>
               <option value="30">30 minutes before</option>
               <option value="60">1 hour before</option>
@@ -168,33 +211,66 @@ const App = {
 
         <div style="display:flex; justify-content:flex-end; gap:0.75rem; margin-top:1.5rem;">
           <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancel</button>
-          <button type="submit" class="btn btn-primary">${taskToEdit ? 'Save Changes' : 'Create Task'}</button>
+          <button type="submit" class="btn btn-primary" id="modalSubmitBtn">${taskToEdit ? 'Save Changes' : (currentItemType === 'event' ? 'Create Event' : 'Create Task')}</button>
         </div>
       </form>
+      <style>
+        .active-type-pill {
+          background: var(--bg-surface) !important;
+          color: var(--primary) !important;
+          box-shadow: var(--shadow-xs);
+        }
+      </style>
     `;
 
-    Modal.open(taskToEdit ? 'Edit Task' : 'Create New Task', formHtml);
+    Modal.open(taskToEdit ? (taskToEdit.itemType === 'event' ? 'Edit Event' : 'Edit Task') : 'Create New Entry', formHtml);
+
+    // Wire radio toggle listener
+    const radios = document.getElementsByName('itemTypeRadio');
+    radios.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const val = e.target.value;
+        const isEv = val === 'event';
+        document.getElementById('typeTaskLabel').className = !isEv ? 'active-type-pill' : '';
+        document.getElementById('typeEventLabel').className = isEv ? 'active-type-pill' : '';
+        document.getElementById('titleFieldLabel').textContent = isEv ? 'Event Title *' : 'Task Title *';
+        document.getElementById('dateFieldLabel').textContent = isEv ? 'Event Date' : 'Due Date';
+        if (!taskToEdit) {
+          document.getElementById('modalSubmitBtn').textContent = isEv ? 'Create Event' : 'Create Task';
+        }
+      });
+    });
 
     document.getElementById('taskForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const selectedType = document.querySelector('input[name="itemTypeRadio"]:checked')?.value || 'task';
+      const timeVal = document.getElementById('taskDueTimeInput').value || null;
+
       const payload = {
+        itemType: selectedType,
         title: document.getElementById('taskTitleInput').value.trim(),
         description: document.getElementById('taskDescInput').value.trim(),
         projectId: document.getElementById('taskProjectSelect').value || null,
         priority: document.getElementById('taskPrioritySelect').value,
         dueDate: document.getElementById('taskDueDateInput').value || null,
-        dueTime: document.getElementById('taskDueTimeInput').value || null,
+        dueTime: timeVal,
+        startTime: selectedType === 'event' ? timeVal : null,
+        endTime: selectedType === 'event' ? timeVal : null,
         reminderMinutes: parseInt(document.getElementById('taskReminderSelect').value, 10),
         tags: document.getElementById('taskTagsInput').value.split(',').map(t => t.trim()).filter(Boolean)
       };
 
       try {
+        const invalidates = [
+          { cacheKey: 'tasks', endpoint: '/tasks' },
+          { cacheKey: 'dashboard', endpoint: '/dashboard' }
+        ];
         if (taskToEdit) {
-          await API.put(`/tasks/${taskToEdit._id}`, payload);
-          Notifications.show('Task updated successfully!', 'success');
+          await SyncManager.mutate('PUT', `/tasks/${taskToEdit._id}`, payload, { invalidates });
+          Notifications.show(`${selectedType === 'event' ? 'Event' : 'Task'} updated successfully!`, 'success');
         } else {
-          await API.post('/tasks', payload);
-          Notifications.show('Task created successfully!', 'success');
+          await SyncManager.mutate('POST', '/tasks', payload, { invalidates });
+          Notifications.show(`${selectedType === 'event' ? 'Event' : 'Task'} created successfully!`, 'success');
         }
         Modal.close();
         if (window.loadCurrentPageData) window.loadCurrentPageData();

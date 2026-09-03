@@ -55,6 +55,24 @@ const taskSchema = new mongoose.Schema(
       type: String,
       trim: true
     }],
+    itemType: {
+      type: String,
+      enum: ['task', 'event'],
+      default: 'task',
+      index: true
+    },
+    startTime: {
+      type: String,
+      default: null // HH:mm format (e.g. "14:00")
+    },
+    endTime: {
+      type: String,
+      default: null // HH:mm format (e.g. "15:30")
+    },
+    autoCompleted: {
+      type: Boolean,
+      default: false
+    },
     completedAt: {
       type: Date,
       default: null

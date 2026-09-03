@@ -2,8 +2,9 @@ const API = {
   baseUrl: '/api',
 
   async request(endpoint, options = {}) {
+    const method = options.method || 'GET';
     const config = {
-      method: options.method || 'GET',
+      method,
       headers: {
         'Content-Type': 'application/json',
         ...options.headers
@@ -13,6 +14,17 @@ const API = {
 
     if (options.body) {
       config.body = JSON.stringify(options.body);
+    }
+
+    // If offline and it's a GET, return from StorageManager cache as fallback
+    if (!navigator.onLine && method === 'GET') {
+      const cacheKey = 'req_' + endpoint;
+      const cached = StorageManager.get(cacheKey);
+      if (cached !== null) {
+        console.info('[API] Offline — serving from local cache:', endpoint);
+        return cached;
+      }
+      throw new Error('You are offline and no cached data is available.');
     }
 
     try {
@@ -27,8 +39,23 @@ const API = {
         throw error;
       }
 
+      // Cache successful GET responses automatically
+      if (method === 'GET') {
+        const cacheKey = 'req_' + endpoint;
+        StorageManager.save(cacheKey, data.data);
+      }
+
       return data.data;
     } catch (error) {
+      // Network failure on GET: try cache fallback
+      if (method === 'GET' && (error.name === 'TypeError' || !navigator.onLine)) {
+        const cacheKey = 'req_' + endpoint;
+        const cached = StorageManager.get(cacheKey);
+        if (cached !== null) {
+          console.info('[API] Network error — serving from local cache:', endpoint);
+          return cached;
+        }
+      }
       console.error(`[API Error] ${endpoint}:`, error.message);
       throw error;
     }

@@ -115,6 +115,12 @@
             <option value="">All Projects</option>
           </select>
 
+          <select id="itemTypeFilter" class="form-control" style="max-width: 140px;">
+            <option value="">All Types</option>
+            <option value="task">Tasks Only</option>
+            <option value="event">Events Only</option>
+          </select>
+
           <select id="priorityFilter" class="form-control" style="max-width: 150px;">
             <option value="">All Priorities</option>
             <option value="low">Low Priority</option>
@@ -138,6 +144,8 @@
     </div>
   </div>
 
+  <script src="/js/storage.js"></script>
+  <script src="/js/sync.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/auth.js"></script>
   <script src="/js/components/notification.js"></script>

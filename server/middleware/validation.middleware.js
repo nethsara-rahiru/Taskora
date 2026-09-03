@@ -27,10 +27,14 @@ const validateLogin = (req, res, next) => {
 };
 
 const validateTask = (req, res, next) => {
-  const { title, priority, status } = req.body;
+  const { title, priority, status, itemType } = req.body;
   if (req.method === 'POST' && (!title || !title.trim())) {
     res.status(400);
-    return next(new Error('Task title is required'));
+    return next(new Error('Title is required'));
+  }
+  if (itemType && !['task', 'event'].includes(itemType)) {
+    res.status(400);
+    return next(new Error('Invalid item type (must be "task" or "event")'));
   }
   if (priority && !['low', 'medium', 'high', 'urgent'].includes(priority)) {
     res.status(400);
