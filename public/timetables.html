@@ -238,6 +238,44 @@
     .slot-block-btn:hover {
       background: rgba(0, 0, 0, 0.65);
     }
+
+    /* ── Drag & Drop States ── */
+    .matrix-slot-block[draggable="true"] {
+      cursor: grab;
+    }
+    .matrix-slot-block.dragging {
+      opacity: 0.4;
+      transform: scale(0.96);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+    }
+    .matrix-day-col.drag-over {
+      background: color-mix(in srgb, var(--primary) 12%, var(--bg-surface)) !important;
+      outline: 2px dashed var(--primary);
+      outline-offset: -2px;
+    }
+
+    /* ── Rich Glassmorphism Floating Hover Tooltip ── */
+    #slotHoverTooltip {
+      position: fixed;
+      z-index: 9999;
+      pointer-events: none;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-left: 5px solid var(--primary);
+      border-radius: var(--radius-lg);
+      padding: 0.85rem 1rem;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.22);
+      width: 240px;
+      opacity: 0;
+      transform: translateY(6px) scale(0.95);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    #slotHoverTooltip.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
     /* ── Schedule Switcher Panel ── */
     .switcher-panel {
       display: flex;
@@ -396,6 +434,9 @@
       </main>
     </div>
   </div>
+
+  <!-- Floating Hover Tooltip Card -->
+  <div id="slotHoverTooltip"></div>
 
   <script src="/js/storage.js"></script>
   <script src="/js/sync.js"></script>

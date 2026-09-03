@@ -189,6 +189,61 @@ function renderWeeklyGrid(timetable) {
 
     const dayCol = document.createElement('div');
     dayCol.className = `matrix-day-col${isToday ? ' is-today' : ''}`;
+    dayCol.dataset.dayId = day.id;
+
+    // Drag & Drop handlers on target day column
+    dayCol.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      dayCol.classList.add('drag-over');
+    });
+
+    dayCol.addEventListener('dragleave', () => {
+      dayCol.classList.remove('drag-over');
+    });
+
+    dayCol.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      dayCol.classList.remove('drag-over');
+
+      const slotId = e.dataTransfer.getData('text/plain');
+      const durationMins = parseInt(e.dataTransfer.getData('durationMins'), 10) || 60;
+      if (!slotId) return;
+
+      const rect = dayCol.getBoundingClientRect();
+      const offsetY = e.clientY - rect.top;
+
+      // Calculate dropped start minute based on 54px per hour timeline starting at 06:00
+      const minsFromBase = (offsetY / HOUR_HEIGHT) * 60;
+      let startMins = Math.max(0, Math.min((END_HOUR - START_HOUR) * 60, minsFromBase));
+      startMins = Math.round(startMins / 15) * 15; // Snap to 15-minute intervals
+
+      const absoluteStartMins = START_HOUR * 60 + startMins;
+      const absoluteEndMins = Math.min(23 * 60 + 59, absoluteStartMins + durationMins);
+
+      const formatTime = (totalMins) => {
+        const h = Math.floor(totalMins / 60);
+        const m = totalMins % 60;
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+      };
+
+      const newStartTime = formatTime(absoluteStartMins);
+      const newEndTime = formatTime(absoluteEndMins);
+
+      try {
+        await SyncManager.mutate('PUT', `/timetables/${timetable._id}/slots/${slotId}`, {
+          dayOfWeek: day.id,
+          startTime: newStartTime,
+          endTime: newEndTime
+        }, {
+          invalidates: [{ cacheKey: 'timetables', endpoint: '/timetables' }]
+        });
+        Notifications.show(`Moved to ${day.name} (${newStartTime}–${newEndTime})`, 'success');
+        loadCurrentPageData();
+      } catch (err) {
+        Notifications.show(err.message || 'Failed to move slot', 'error');
+      }
+    });
 
     // Render background hour grid lines
     for (let h = START_HOUR; h <= END_HOUR; h++) {
@@ -216,12 +271,16 @@ function renderWeeklyGrid(timetable) {
 
       const block = document.createElement('div');
       block.className = 'matrix-slot-block';
+      block.setAttribute('draggable', 'true');
       block.style.top = `${topPx + 2}px`;
       block.style.height = `${heightPx - 4}px`;
       block.style.backgroundColor = slotBg;
 
       block.innerHTML = `
         <div class="slot-block-actions">
+          <button class="slot-block-btn duplicate-slot-btn" title="Duplicate Slot">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          </button>
           <button class="slot-block-btn edit-slot-btn" title="Edit Slot">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
           </button>
@@ -244,6 +303,77 @@ function renderWeeklyGrid(timetable) {
           </div>
         ` : ''}
       `;
+
+      // Drag start & end events
+      block.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', slot._id);
+        e.dataTransfer.setData('durationMins', durationMins);
+        e.dataTransfer.effectAllowed = 'move';
+        block.classList.add('dragging');
+      });
+
+      block.addEventListener('dragend', () => {
+        block.classList.remove('dragging');
+        document.querySelectorAll('.matrix-day-col').forEach(c => c.classList.remove('drag-over'));
+      });
+
+      // Hover Tooltip events
+      const tooltip = document.getElementById('slotHoverTooltip');
+
+      block.addEventListener('mouseenter', () => {
+        if (!tooltip) return;
+        tooltip.style.borderLeftColor = slotBg;
+        tooltip.innerHTML = `
+          <div style="font-size:0.68rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">
+            ${day.name} • ${timetable.title}
+          </div>
+          <div style="font-size:0.95rem; font-weight:800; color:var(--text-main); margin-bottom:0.35rem; line-height:1.2;">
+            ${TaskCard.escapeHtml(slot.subject)}
+          </div>
+          <div style="font-size:0.78rem; font-weight:700; color:var(--primary); margin-bottom:0.4rem; display:flex; align-items:center; gap:0.3rem;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            ${slot.startTime} – ${slot.endTime} (${durationMins} mins)
+          </div>
+          ${slot.room ? `<div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.15rem;">📍 Location: <b>${TaskCard.escapeHtml(slot.room)}</b></div>` : ''}
+          ${slot.teacher ? `<div style="font-size:0.78rem; color:var(--text-muted);">👤 With/Organizer: <b>${TaskCard.escapeHtml(slot.teacher)}</b></div>` : ''}
+        `;
+        tooltip.classList.add('visible');
+      });
+
+      block.addEventListener('mousemove', (e) => {
+        if (!tooltip) return;
+        const x = Math.min(window.innerWidth - 260, e.clientX + 16);
+        const y = Math.min(window.innerHeight - 180, e.clientY + 16);
+        tooltip.style.left = `${x}px`;
+        tooltip.style.top = `${y}px`;
+      });
+
+      block.addEventListener('mouseleave', () => {
+        if (tooltip) tooltip.classList.remove('visible');
+      });
+
+      // Duplicate button listener
+      block.querySelector('.duplicate-slot-btn').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        try {
+          const duplicatePayload = {
+            subject: `${slot.subject} (Copy)`,
+            dayOfWeek: slot.dayOfWeek,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            room: slot.room,
+            teacher: slot.teacher,
+            color: slot.color
+          };
+          await SyncManager.mutate('POST', `/timetables/${timetable._id}/slots`, duplicatePayload, {
+            invalidates: [{ cacheKey: 'timetables', endpoint: '/timetables' }]
+          });
+          Notifications.show('Slot duplicated!', 'success');
+          loadCurrentPageData();
+        } catch (err) {
+          Notifications.show(err.message || 'Failed to duplicate slot', 'error');
+        }
+      });
 
       block.querySelector('.edit-slot-btn').addEventListener('click', (e) => {
         e.stopPropagation();
