@@ -177,15 +177,25 @@
   /* Bottom Sheet Modal Dialogs on Mobile */
   .modal-overlay {
     align-items: flex-end;
+    padding: 0;
   }
 
   .modal-container {
     max-width: 100%;
+    width: 100%;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    padding: 1.5rem;
+    padding: 1.25rem 1.25rem 1.75rem 1.25rem;
     transform: translateY(100%);
-    max-height: 90vh;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-body {
+    flex: 1;
     overflow-y: auto;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
   }
 
   .modal-overlay.active .modal-container {

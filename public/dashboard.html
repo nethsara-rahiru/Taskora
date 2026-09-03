@@ -573,14 +573,43 @@
         } else {
           data.recentlyCompleted.forEach(t => {
             const div = document.createElement('div');
-            div.style.cssText = 'padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.83rem; display: flex; justify-content: space-between; align-items: center;';
+            div.style.cssText = 'padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.83rem; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;';
             div.innerHTML = `
-              <span style="display:flex; align-items:center; gap:0.4rem; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                ${TaskCard.escapeHtml(t.title)}
-              </span>
-              <span style="color: var(--text-light); font-size: 0.72rem; flex-shrink: 0; margin-left: 0.5rem;">${new Date(t.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              <div style="display:flex; align-items:center; gap:0.4rem; font-weight:600; min-width:0; flex:1; overflow:hidden;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="3" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:line-through; color:var(--text-muted);">${TaskCard.escapeHtml(t.title)}</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:0.45rem; flex-shrink:0;">
+                <span style="color: var(--text-light); font-size: 0.72rem;">${new Date(t.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                <button class="undo-task-btn" title="Undo task completion" style="
+                  background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main);
+                  font-size: 0.72rem; font-weight: 700; padding: 0.18rem 0.48rem; border-radius: var(--radius-sm);
+                  cursor: pointer; display: inline-flex; align-items: center; gap: 0.25rem; transition: all 0.15s ease;
+                ">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                  Undo
+                </button>
+              </div>
             `;
+
+            const undoBtn = div.querySelector('.undo-task-btn');
+            if (undoBtn) {
+              undoBtn.addEventListener('click', async () => {
+                try {
+                  await SyncManager.mutate('POST', `/tasks/${t._id}/uncomplete`, null, {
+                    invalidates: [
+                      { cacheKey: 'tasks', endpoint: '/tasks' },
+                      { cacheKey: 'dashboard', endpoint: '/dashboard' }
+                    ]
+                  });
+                  Notifications.show('Task completion undone!', 'info');
+                  loadCurrentPageData();
+                } catch (err) {
+                  Notifications.show(err.message || 'Failed to undo task', 'error');
+                }
+              });
+            }
+
             recentContainer.appendChild(div);
           });
         }

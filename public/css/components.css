@@ -459,7 +459,7 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   display: flex;
@@ -469,6 +469,8 @@
   opacity: 0;
   pointer-events: none;
   transition: var(--transition);
+  padding: 1.5rem;
+  box-sizing: border-box;
 }
 
 .modal-overlay.active {
@@ -481,11 +483,16 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
   width: 100%;
-  max-width: 540px;
-  padding: 2rem;
+  max-width: 560px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  padding: 1.75rem;
   box-shadow: var(--shadow-xl);
   transform: scale(0.95) translateY(10px);
   transition: var(--transition-bounce);
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .modal-overlay.active .modal-container {
@@ -496,12 +503,21 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
+  flex-shrink: 0;
 }
 
 .modal-title {
   font-size: 1.25rem;
   font-weight: 800;
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 0.35rem;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Toast Notifications */
