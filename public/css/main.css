@@ -190,3 +190,19 @@ input, select, textarea {
   width: 100%;
   margin: 0 auto;
 }
+
+/* ── SPA Inner View Transition Animation ── */
+.page-container.page-view-fade {
+  animation: pageViewFade 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pageViewFade {
+  from {
+    opacity: 0.3;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

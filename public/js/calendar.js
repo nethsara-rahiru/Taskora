@@ -144,4 +144,5 @@ async function loadCurrentPageData() {
 }
 
 document.addEventListener('DOMContentLoaded', initCalendar);
+window.initCalendar = initCalendar;
 window.loadCurrentPageData = loadCurrentPageData;

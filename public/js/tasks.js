@@ -217,4 +217,5 @@ function renderKanbanBoard(container, tasks) {
 }
 
 document.addEventListener('DOMContentLoaded', initTasksPage);
+window.initTasksPage = initTasksPage;
 window.loadCurrentPageData = loadCurrentPageData;

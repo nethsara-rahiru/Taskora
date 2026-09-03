@@ -149,9 +149,11 @@ function openProjectModal(projectToEdit = null) {
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function initProjectsPage() {
   document.getElementById('createProjectBtn')?.addEventListener('click', () => openProjectModal());
   loadCurrentPageData();
-});
+}
 
+document.addEventListener('DOMContentLoaded', initProjectsPage);
+window.initProjectsPage = initProjectsPage;
 window.loadCurrentPageData = loadCurrentPageData;
