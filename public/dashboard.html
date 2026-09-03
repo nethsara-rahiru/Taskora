@@ -103,35 +103,29 @@
         </div>
 
         <div class="dashboard-sections">
-          <!-- Main Left Column: Tabbed Focus Panel -->
-          <div class="dashboard-card" style="padding-bottom: 0;">
-            <div class="section-title" style="margin-bottom: 0.5rem;">
-              <span>Focus Timeline</span>
-              <a href="/tasks.html" style="font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem;">
+          <!-- Main Left Column: Unified Focus Timeline -->
+          <div class="dashboard-card" style="padding-bottom: 0; overflow: hidden;">
+            <div class="section-title" style="margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; min-width: 0;">
+                <span>Focus Timeline</span>
+                <span style="font-size: 0.72rem; font-weight: 700; color: var(--primary); background: var(--primary-light); padding: 0.15rem 0.55rem; border-radius: var(--radius-full); white-space: nowrap;">Today & Tomorrow</span>
+              </div>
+              <a href="/tasks.html" style="font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; flex-shrink: 0;">
                 All Tasks
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
               </a>
             </div>
 
-            <!-- Focus Tabs -->
-            <div style="display: flex; gap: 0.25rem; padding: 0.25rem; background: var(--bg-input); border-radius: var(--radius-md); margin-bottom: 1rem; width: fit-content;">
-              <button class="focus-tab-btn active" data-tab="today" id="focusTabToday" style="padding: 0.3rem 0.75rem; font-size: 0.8rem; font-weight: 700; border: none; background: var(--bg-surface); color: var(--primary); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.18s ease; box-shadow: var(--shadow-xs);">Today</button>
-              <button class="focus-tab-btn" data-tab="tomorrow" id="focusTabTomorrow" style="padding: 0.3rem 0.75rem; font-size: 0.8rem; font-weight: 700; border: none; background: transparent; color: var(--text-muted); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.18s ease;">Tomorrow</button>
-              <button class="focus-tab-btn" data-tab="highpri" id="focusTabHighPri" style="padding: 0.3rem 0.75rem; font-size: 0.8rem; font-weight: 700; border: none; background: transparent; color: var(--text-muted); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.18s ease;">🔥 Priority</button>
-            </div>
-
-            <!-- Focus Content Panels -->
-            <div id="focusPanelToday" class="focus-panel"></div>
-            <div id="focusPanelTomorrow" class="focus-panel" style="display:none;"></div>
-            <div id="focusPanelHighPri" class="focus-panel" style="display:none;"></div>
+            <!-- Unified Focus Content List -->
+            <div id="unifiedFocusList" style="width: 100%; overflow: hidden;"></div>
 
             <!-- Smart Free-Time Suggestion Box -->
-            <div id="freeTimeSuggestion" style="display: none; margin: 0.75rem -1.35rem -1px; padding: 0.85rem 1.35rem; border-top: 1px solid var(--border-color); background: color-mix(in srgb, var(--primary) 5%, var(--bg-surface)); border-radius: 0 0 var(--radius-xl) var(--radius-xl);">
+            <div id="freeTimeSuggestion" style="display: none; margin: 0.75rem -1.75rem 0; padding: 0.85rem 1.75rem; border-top: 1px solid var(--border-color); background: color-mix(in srgb, var(--primary) 5%, var(--bg-surface));">
               <div style="display: flex; align-items: flex-start; gap: 0.6rem;">
-                <span style="font-size: 1.1rem; line-height: 1; margin-top: 0.05rem;">💡</span>
-                <div>
+                <span style="font-size: 1.1rem; line-height: 1; margin-top: 0.05rem; flex-shrink: 0;">💡</span>
+                <div style="min-width: 0; flex: 1;">
                   <div style="font-size: 0.72rem; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.2rem;">Best Time to Focus</div>
-                  <div id="freeTimeSuggestionText" style="font-size: 0.82rem; font-weight: 600; color: var(--text-main); line-height: 1.45;"></div>
+                  <div id="freeTimeSuggestionText" style="font-size: 0.82rem; font-weight: 600; color: var(--text-main); line-height: 1.45; word-break: break-word;"></div>
                 </div>
               </div>
             </div>
@@ -183,40 +177,12 @@
   <script src="/js/components/task-card.js"></script>
   <script src="/js/app.js"></script>
   <script>
-    // ── Focus Tab Switcher ──
+  <script>
     let _dashboardData = null;
-    let _activeFocusTab = 'today';
-
-    document.querySelectorAll('.focus-tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        _activeFocusTab = btn.dataset.tab;
-        document.querySelectorAll('.focus-tab-btn').forEach(b => {
-          const isActive = b.dataset.tab === _activeFocusTab;
-          b.style.background = isActive ? 'var(--bg-surface)' : 'transparent';
-          b.style.color = isActive ? 'var(--primary)' : 'var(--text-muted)';
-          b.style.boxShadow = isActive ? 'var(--shadow-xs)' : 'none';
-        });
-        document.querySelectorAll('.focus-panel').forEach(p => p.style.display = 'none');
-        const panel = document.getElementById(`focusPanel${_activeFocusTab.charAt(0).toUpperCase() + _activeFocusTab.slice(1)}`);
-        if (panel) {
-          panel.style.display = 'block';
-          panel.classList.remove('tab-fade-in');
-          void panel.offsetWidth;
-          panel.classList.add('tab-fade-in');
-        }
-        // Only show suggestion on today tab
-        updateSuggestionVisibility();
-      });
-    });
-
-    function updateSuggestionVisibility() {
-      const box = document.getElementById('freeTimeSuggestion');
-      if (box) box.style.display = _activeFocusTab === 'today' ? 'block' : 'none';
-    }
 
     // ── Compact Focus Row Renderer ──
-    // isPast: true = fade item
-    function renderFocusRow(item) {
+    // isFuture: if true, item is on a future day so NEVER fade it
+    function renderFocusRow(item, isFuture = false) {
       const now = new Date();
       const nowMins = now.getHours() * 60 + now.getMinutes();
 
@@ -233,7 +199,7 @@
         // Timetable slot
         const [eh, em] = (item.endTime || '').split(':').map(Number);
         const endMins = eh * 60 + (em || 0);
-        isPast = endMins < nowMins;
+        isPast = !isFuture && (endMins < nowMins);
         timeLabel = item.startTime && item.endTime ? `${item.startTime}–${item.endTime}` : '';
         typeTag = 'SLOT';
         typeColor = '#ffffff';
@@ -253,26 +219,30 @@
         if (item.dueTime) {
           timeLabel = item.dueTime;
           const [h, m] = item.dueTime.split(':').map(Number);
-          isPast = (h * 60 + m) < nowMins;
+          if (!isFuture) isPast = (h * 60 + m) < nowMins;
         }
-        const isOverdue = item.dueDate && new Date(item.dueDate) < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        const isOverdue = !isFuture && item.dueDate && new Date(item.dueDate) < new Date(now.getFullYear(), now.getMonth(), now.getDate());
         if (isOverdue) {
           isPast = true;
           typeTag = 'OVERDUE';
           typeColor = '#EF4444';
           typeBg = 'rgba(239,68,68,0.12)';
         }
-        const priorityColors = { high: '#F97316', urgent: '#EF4444', medium: 'var(--primary)', low: 'var(--color-success)' };
         subLabel = item.priority ? `● ${item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}` : '';
       }
 
       const row = document.createElement('div');
       row.style.cssText = `
-        display: flex; align-items: center; gap: 0.6rem;
+        display: flex; align-items: center; gap: 0.5rem;
         padding: 0.45rem 0;
         border-bottom: 1px solid var(--border-color);
         opacity: ${isPast ? '0.38' : '1'};
         transition: opacity 0.2s;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
       `;
 
       row.innerHTML = `
@@ -297,23 +267,70 @@
       return row;
     }
 
-    function renderFocusPanel(panelId, tasks, slots, emptyMsg) {
-      const panel = document.getElementById(panelId);
-      if (!panel) return;
-      panel.innerHTML = '';
+    // ── Unified Focus List Renderer ──
+    function renderUnifiedFocusList(data) {
+      const container = document.getElementById('unifiedFocusList');
+      if (!container) return;
+      container.innerHTML = '';
 
-      // Merge and sort by time
-      const merged = [];
-      slots.forEach(s => merged.push({ ...s, _type: 'slot', _sortTime: s.startTime || '99:99' }));
-      tasks.forEach(t => merged.push({ ...t, _type: 'task', _sortTime: t.dueTime || '99:99' }));
-      merged.sort((a, b) => a._sortTime.localeCompare(b._sortTime));
+      const todayTasks = data.todayTasks || [];
+      const todaySlots = data.todayTimetableSlots || [];
+      const tomorrowTasks = data.tomorrowTasks || [];
+      const tomorrowSlots = data.tomorrowTimetableSlots || [];
+      const highPriorityTasks = data.highPriorityTasks || [];
 
-      if (merged.length === 0) {
-        panel.innerHTML = `<div style="color: var(--text-muted); font-size: 0.82rem; padding: 1.25rem 0; text-align: center;">${emptyMsg}</div>`;
-        return;
+      // 1. Today Group
+      const todayMerged = [];
+      todaySlots.forEach(s => todayMerged.push({ ...s, _type: 'slot', _sortTime: s.startTime || '99:99' }));
+      todayTasks.forEach(t => todayMerged.push({ ...t, _type: 'task', _sortTime: t.dueTime || '99:99' }));
+      todayMerged.sort((a, b) => a._sortTime.localeCompare(b._sortTime));
+
+      const todayHeader = document.createElement('div');
+      todayHeader.style.cssText = 'font-size: 0.72rem; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.06em; margin: 0.25rem 0 0.4rem 0; display: flex; align-items: center; gap: 0.35rem;';
+      todayHeader.innerHTML = `📍 Today's Focus (${todayMerged.length})`;
+      container.appendChild(todayHeader);
+
+      if (todayMerged.length === 0) {
+        const empty = document.createElement('div');
+        empty.style.cssText = 'color: var(--text-muted); font-size: 0.8rem; padding: 0.5rem 0; margin-bottom: 0.5rem;';
+        empty.textContent = '✅ All clear for today!';
+        container.appendChild(empty);
+      } else {
+        todayMerged.forEach(item => container.appendChild(renderFocusRow(item, false)));
       }
 
-      merged.forEach(item => panel.appendChild(renderFocusRow(item)));
+      // 2. Tomorrow Group
+      const tomorrowMerged = [];
+      tomorrowSlots.forEach(s => tomorrowMerged.push({ ...s, _type: 'slot', _sortTime: s.startTime || '99:99' }));
+      tomorrowTasks.forEach(t => tomorrowMerged.push({ ...t, _type: 'task', _sortTime: t.dueTime || '99:99' }));
+      tomorrowMerged.sort((a, b) => a._sortTime.localeCompare(b._sortTime));
+
+      const tomorrowHeader = document.createElement('div');
+      tomorrowHeader.style.cssText = 'font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 1rem 0 0.4rem 0; display: flex; align-items: center; gap: 0.35rem;';
+      tomorrowHeader.innerHTML = `🌅 Tomorrow's Preview (${tomorrowMerged.length})`;
+      container.appendChild(tomorrowHeader);
+
+      if (tomorrowMerged.length === 0) {
+        const empty = document.createElement('div');
+        empty.style.cssText = 'color: var(--text-muted); font-size: 0.8rem; padding: 0.5rem 0; margin-bottom: 0.5rem;';
+        empty.textContent = 'Nothing scheduled for tomorrow yet.';
+        container.appendChild(empty);
+      } else {
+        tomorrowMerged.forEach(item => container.appendChild(renderFocusRow(item, true))); // isFuture = true!
+      }
+
+      // 3. High Priority / Urgent Items (if not already in Today or Tomorrow)
+      const shownIds = new Set([...todayTasks.map(t=>t._id), ...tomorrowTasks.map(t=>t._id)]);
+      const otherHighPri = highPriorityTasks.filter(t => !shownIds.has(t._id));
+
+      if (otherHighPri.length > 0) {
+        const hpHeader = document.createElement('div');
+        hpHeader.style.cssText = 'font-size: 0.72rem; font-weight: 800; color: var(--priority-high); text-transform: uppercase; letter-spacing: 0.06em; margin: 1rem 0 0.4rem 0; display: flex; align-items: center; gap: 0.35rem;';
+        hpHeader.innerHTML = `🔥 High Priority Focus (${otherHighPri.length})`;
+        container.appendChild(hpHeader);
+
+        otherHighPri.forEach(item => container.appendChild(renderFocusRow({ ...item, _type: 'task' }, true)));
+      }
     }
 
     // ── Free-Time Suggestion Engine ──
@@ -322,7 +339,6 @@
       const DAY_END   = 22 * 60; // 22:00
       const MIN_GAP   = 30;      // minutes
 
-      // Parse all occupied blocks
       const occupied = [];
       const parseBlock = (startStr, endStr) => {
         if (!startStr || !endStr) return;
@@ -335,7 +351,6 @@
       events.forEach(e => { if (e.startTime && e.endTime) parseBlock(e.startTime, e.endTime); });
       occupied.sort((a, b) => a.start - b.start);
 
-      // Find gaps
       const freeSlots = [];
       let cursor = Math.max(DAY_START, new Date().getHours() * 60 + new Date().getMinutes());
 
@@ -360,20 +375,17 @@
       const text = document.getElementById('freeTimeSuggestionText');
       if (!box || !text) return;
 
-      // Events with times from todayTasks
       const todayEvents = todayTasks.filter(t => t.itemType === 'event' && t.startTime);
-
       const freeSlots = computeFreeSlots(todaySlots, todayEvents);
+
       if (freeSlots.length === 0) {
         box.style.display = 'none';
         return;
       }
 
-      // Best free slot = longest gap
       const best = freeSlots.reduce((a, b) => (b.end - b.start > a.end - a.start ? b : a));
       const durMins = best.end - best.start;
 
-      // Best pending task = highest priority, due soonest
       const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
       const candidates = (pendingTasks || [])
         .filter(t => t.status !== 'completed' && t.itemType !== 'event')
@@ -387,7 +399,7 @@
           Great time to work on <b>${TaskCard.escapeHtml(topTask.title)}</b>
           ${topTask.priority === 'high' || topTask.priority === 'urgent' ? ' — <span style="color:var(--priority-high);font-weight:800;">High Priority!</span>' : ''}.
         `;
-        box.style.display = _activeFocusTab === 'today' ? 'block' : 'none';
+        box.style.display = 'block';
       } else {
         box.style.display = 'none';
       }
@@ -424,7 +436,7 @@
         }
         if (streakElem) streakElem.textContent = s.completedToday > 0 ? `${s.completedToday} Done Today` : `${s.completionRate}% Rate`;
 
-        // High Priority Alert Banner (compact)
+        // Urgent Alert Banner (compact)
         const highPrioritySection = document.getElementById('highPrioritySection');
         const highPriorityList = document.getElementById('highPriorityTaskList');
         const highPriorityBadge = document.getElementById('highPriorityBadge');
@@ -434,34 +446,20 @@
             highPrioritySection.style.display = 'block';
             if (highPriorityBadge) highPriorityBadge.textContent = `${highPriorityTasks.length} Urgent`;
             highPriorityList.innerHTML = '';
-            highPriorityTasks.slice(0, 3).forEach(task => highPriorityList.appendChild(renderFocusRow(task)));
+            highPriorityTasks.slice(0, 3).forEach(task => highPriorityList.appendChild(renderFocusRow(task, false)));
           } else {
             highPrioritySection.style.display = 'none';
           }
         }
 
-        // ── Focus Panels ──
+        // ── Render Unified Focus Timeline ──
+        renderUnifiedFocusList(data);
+
+        // Free-time suggestion
         const todayTasks = data.todayTasks || [];
         const todaySlots = data.todayTimetableSlots || [];
         const tomorrowTasks = data.tomorrowTasks || [];
-        const tomorrowSlots = data.tomorrowTimetableSlots || [];
-
-        renderFocusPanel('focusPanelToday', todayTasks, todaySlots, '✅ All clear — no items for today!');
-        renderFocusPanel('focusPanelTomorrow', tomorrowTasks, tomorrowSlots, 'Nothing scheduled for tomorrow yet.');
-        // High-pri panel: use high priority tasks merged with today's items sorted by priority
-        const highPriItems = highPriorityTasks.map(t => ({ ...t, _type: 'task' }));
-        const hpPanel = document.getElementById('focusPanelHighPri');
-        if (hpPanel) {
-          hpPanel.innerHTML = '';
-          if (highPriItems.length === 0) {
-            hpPanel.innerHTML = `<div style="color: var(--text-muted); font-size: 0.82rem; padding: 1.25rem 0; text-align: center;">No high-priority pending tasks. 🎉</div>`;
-          } else {
-            highPriItems.forEach(item => hpPanel.appendChild(renderFocusRow(item)));
-          }
-        }
-
-        // Free-time suggestion
-        renderFreeTimeSuggestion(todaySlots, todayTasks, [...todayTasks, ...tomorrowTasks]);
+        renderFreeTimeSuggestion(todaySlots, todayTasks, [...todayTasks, ...tomorrowTasks, ...highPriorityTasks]);
 
         // Upcoming Timeline
         const upcomingContainer = document.getElementById('upcomingTimelineList');
@@ -471,7 +469,7 @@
           if (upcomingTasks.length === 0) {
             upcomingContainer.innerHTML = `<div style="color: var(--text-muted); font-size: 0.85rem; padding: 0.5rem 0;">No upcoming items for next 7 days.</div>`;
           } else {
-            upcomingTasks.forEach(item => upcomingContainer.appendChild(renderFocusRow(item)));
+            upcomingTasks.forEach(item => upcomingContainer.appendChild(renderFocusRow(item, true)));
           }
         }
 
