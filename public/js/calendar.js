@@ -33,7 +33,7 @@ function renderCalendar(allTasks) {
   // Blank offset cells
   for (let i = 0; i < firstDay; i++) {
     const emptyCell = document.createElement('div');
-    emptyCell.style.cssText = 'background: transparent; border: none; min-height: 90px;';
+    emptyCell.style.cssText = 'background: transparent; border: none; min-height: 84px;';
     grid.appendChild(emptyCell);
   }
 
@@ -44,45 +44,94 @@ function renderCalendar(allTasks) {
     const dayStr = dayDate.toISOString().split('T')[0];
 
     const dayTasks = allTasks.filter(t => t.dueDate && new Date(t.dueDate).toISOString().split('T')[0] === dayStr);
+    const count = dayTasks.length;
+
+    // Busyness density classification
+    let densityClass = 'day-free';
+    let badgeHtml = '';
+
+    if (count >= 5) {
+      densityClass = 'day-packed';
+      badgeHtml = `<span class="day-badge badge-packed">${count} Packed</span>`;
+    } else if (count >= 3) {
+      densityClass = 'day-busy';
+      badgeHtml = `<span class="day-badge badge-busy">${count} Busy</span>`;
+    } else if (count >= 1) {
+      densityClass = 'day-normal';
+      badgeHtml = `<span class="day-badge badge-normal">${count} ${count === 1 ? 'Item' : 'Items'}</span>`;
+    }
 
     const cell = document.createElement('div');
-    cell.className = `calendar-day ${dayStr === todayStr ? 'today' : ''}`;
+    cell.className = `calendar-day ${densityClass} ${dayStr === todayStr ? 'today' : ''}`;
     cell.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-size:0.9rem; font-weight:700;">${day}</span>
-        ${dayTasks.length > 0 ? `<span style="font-size:0.75rem; font-weight:700; background:var(--primary); color:white; border-radius:50%; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center;">${dayTasks.length}</span>` : ''}
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <span style="font-size:0.95rem; font-weight:800; color: var(--text-main);">${day}</span>
+        ${dayStr === todayStr ? '<span style="font-size:0.6rem; font-weight:800; background:var(--primary); color:white; padding:0.05rem 0.3rem; border-radius:3px;">TODAY</span>' : ''}
       </div>
-      <div style="font-size:0.75rem; color:var(--text-muted); display:flex; flex-direction:column; gap:0.25rem; margin-top:0.35rem;">
-        ${dayTasks.slice(0, 2).map(t => `
-          <div style="background:var(--primary-light); color:var(--primary); padding:0.15rem 0.35rem; border-radius:4px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-            ${TaskCard.escapeHtml(t.title)}
-          </div>
-        `).join('')}
-        ${dayTasks.length > 2 ? `<div style="font-size:0.7rem; color:var(--text-light); font-weight:600;">+ ${dayTasks.length - 2} more</div>` : ''}
+      <div style="display:flex; align-items:center; justify-content:flex-end; margin-top: 0.5rem;">
+        ${badgeHtml}
       </div>
     `;
 
+    // Click listener to open popup (Desktop modal vs Mobile bottom sheet card)
     cell.addEventListener('click', () => {
-      if (dayTasks.length > 0) {
-        const listHtml = `
-          <div style="display:flex; flex-direction:column; gap:0.75rem;">
-            ${dayTasks.map(t => `
-              <div style="padding:1rem; border:1px solid var(--border-color); border-radius:var(--radius-md); background:var(--bg-surface);">
-                <div style="font-weight:700; font-size:1rem; margin-bottom:0.25rem;">${TaskCard.escapeHtml(t.title)}</div>
-                ${t.description ? `<div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.5rem;">${TaskCard.escapeHtml(t.description)}</div>` : ''}
-                <div style="font-size:0.8rem; color:var(--text-muted); display:flex; gap:0.75rem;">
-                  <span>Priority: <b>${t.priority}</b></span>
-                  ${t.dueTime ? `<span>Time: <b>${t.dueTime}</b></span>` : ''}
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        `;
-        Modal.open(`Tasks for ${monthNames[month]} ${day}, ${year}`, listHtml);
-      }
+      openDateDetailsPopup(monthNames[month], day, year, dayStr, dayTasks);
     });
 
     grid.appendChild(cell);
+  }
+}
+
+function openDateDetailsPopup(monthName, day, year, dateStr, dayTasks) {
+  const isMobile = window.innerWidth <= 768;
+
+  let contentHtml = '';
+
+  if (dayTasks.length === 0) {
+    contentHtml = `
+      <div style="text-align:center; padding: 2rem 1rem; color: var(--text-muted);">
+        <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--primary-light); color: var(--primary); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line></svg>
+        </div>
+        <p style="font-weight: 800; font-size: 1.05rem; color: var(--text-main);">Free Day! No items scheduled</p>
+        <p style="font-size: 0.85rem; margin-top: 0.25rem;">Enjoy your open schedule or add a new task for this day.</p>
+        <button class="btn btn-primary btn-sm" style="margin-top: 1.25rem;" onclick="Modal.close(); App.openTaskModal();">+ Add Task for ${monthName} ${day}</button>
+      </div>
+    `;
+  } else {
+    contentHtml = `
+      <div style="display:flex; flex-direction:column; gap:0.75rem; max-height: 60vh; overflow-y: auto; padding-right: 2px;">
+        ${dayTasks.map(t => {
+          const isEvent = t.itemType === 'event';
+          return `
+            <div style="padding:0.85rem; border:1px solid var(--border-color); border-left: 4px solid ${isEvent ? '#9333EA' : 'var(--primary)'}; border-radius:var(--radius-md); background:var(--bg-surface);">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; margin-bottom: 0.3rem;">
+                <span style="font-size:0.65rem; font-weight:800; padding:0.1rem 0.4rem; border-radius:4px; background:${isEvent ? 'rgba(147, 51, 234, 0.15)' : 'var(--primary-light)'}; color:${isEvent ? '#9333EA' : 'var(--primary)'};">
+                  ${isEvent ? 'EVENT' : 'TASK'}
+                </span>
+                <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted);">
+                  ${t.dueTime ? `⏰ ${t.dueTime}` : 'All Day'}
+                </span>
+              </div>
+              <div style="font-weight:800; font-size:0.95rem; color:var(--text-main); margin-bottom:0.2rem;">${TaskCard.escapeHtml(t.title)}</div>
+              ${t.description ? `<div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.4rem;">${TaskCard.escapeHtml(t.description)}</div>` : ''}
+              <div style="font-size:0.75rem; color:var(--text-muted); display:flex; align-items:center; justify-content:space-between; margin-top:0.4rem; border-top:1px stroke var(--border-color); pt:0.3rem;">
+                <span>Priority: <b style="text-transform:capitalize;">${t.priority || 'medium'}</b></span>
+                <span>Status: <b style="text-transform:capitalize;">${t.status || 'pending'}</b></span>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  Modal.open(`${monthName} ${day}, ${year} — ${dayTasks.length} ${dayTasks.length === 1 ? 'Item' : 'Items'}`, contentHtml);
+
+  // If mobile, add bottom sheet class to modal content container
+  if (isMobile) {
+    const modalContent = document.querySelector('.modal-content');
+    if (modalContent) modalContent.classList.add('mobile-bottom-sheet');
   }
 }
 
