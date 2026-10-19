@@ -250,3 +250,261 @@
     width: 100%;
   }
 }
+
+/* Keep intrinsic grid and flex widths inside the available page width. */
+.dashboard-sections > *,
+.dashboard-grid > *,
+.form-row > * {
+  min-width: 0;
+}
+
+/* These cards are page content, not modal dialogs (Settings). */
+.page-container > .modal-container {
+  max-height: none;
+  overflow: visible;
+  transform: none;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .task-actions,
+  .slot-block-actions {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content,
+  .sidebar,
+  .sidebar-backdrop,
+  .modal-overlay {
+    height: 100dvh;
+  }
+
+  .top-header {
+    flex-shrink: 0;
+    gap: 0.5rem;
+  }
+
+  .header-title-group {
+    flex: 1;
+    gap: 0.35rem;
+  }
+
+  .header-title-group h2 {
+    font-size: 1.05rem !important; /* Page headings currently set this inline. */
+  }
+
+  .user-profile-menu {
+    gap: 0.5rem;
+  }
+
+  .sidebar {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .sidebar-nav {
+    flex: 1 0 auto;
+  }
+
+  .page-container {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mobile-fab-btn {
+    bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .modal-overlay .modal-container {
+    max-height: 88dvh;
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .modal-header {
+    gap: 0.75rem;
+  }
+
+  .modal-header .btn-icon {
+    flex-shrink: 0;
+  }
+
+  .modal-title {
+    overflow-wrap: anywhere;
+  }
+
+  .page-container > .modal-container {
+    border-radius: var(--radius-xl);
+  }
+
+  .projects-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .project-card {
+    padding: 1rem;
+    overflow-wrap: anywhere;
+  }
+
+  .project-card > div > div:first-child {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .task-card {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 0.5rem 0.75rem;
+    padding: 1rem;
+  }
+
+  .task-card .task-actions {
+    grid-column: 2;
+    justify-self: end;
+    opacity: 1;
+  }
+
+  .task-title {
+    flex-wrap: wrap;
+  }
+
+  .task-meta {
+    gap: 0.5rem;
+  }
+
+  .task-meta-item,
+  .tag-chip {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .task-meta-item svg {
+    flex-shrink: 0;
+  }
+
+  .btn-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .kanban-board {
+    max-width: 100%;
+    grid-template-columns: repeat(3, minmax(0, 85%));
+  }
+
+  .calendar-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.25rem;
+  }
+
+  .calendar-day {
+    min-height: 68px;
+    min-width: 0;
+    padding: 0.3rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .calendar-header-day {
+    font-size: 0.6rem;
+    letter-spacing: 0;
+  }
+
+  .day-badge {
+    padding: 0.1rem 0.2rem;
+    font-size: 0.6rem;
+    max-width: 100%;
+  }
+
+  #calendarMonthTitle {
+    font-size: 1rem !important;
+  }
+
+  .switcher-scrollable {
+    min-width: 0;
+    flex-basis: 100%;
+    order: 1;
+  }
+
+  .schedule-tab,
+  .timetable-pill {
+    flex-shrink: 0;
+  }
+
+  .switcher-divider {
+    display: none;
+  }
+
+  .switcher-actions {
+    margin-left: auto;
+  }
+
+  .settings-actions {
+    flex-wrap: wrap;
+  }
+
+  .auth-container {
+    padding: 1rem;
+    min-height: 100dvh;
+  }
+
+  .auth-card {
+    padding: 1.75rem 1.25rem;
+  }
+
+  .landing-nav {
+    height: auto;
+    min-height: 80px;
+    padding: 1rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .landing-nav > div {
+    flex-wrap: wrap;
+  }
+
+  .hero {
+    padding: 2.5rem 1rem;
+  }
+
+  .hero-title {
+    font-size: clamp(2rem, 8vw, 3rem);
+  }
+
+  .hero-badge {
+    font-size: 0.75rem;
+  }
+
+  .hero > div:not(.preview-card) {
+    flex-wrap: wrap;
+  }
+
+  .features-grid {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0 1rem;
+    margin: 2rem auto;
+  }
+
+  .preview-card {
+    padding: 1rem;
+  }
+
+  .preview-card > div {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .preview-card > div[style*="display:grid"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .dashboard-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .calendar-day {
+    padding: 0.2rem;
+  }
+}
