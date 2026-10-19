@@ -201,13 +201,12 @@ function renderWeeklyGrid(timetablesInput) {
   const gridContainer = document.getElementById('weeklyGridContainer');
   if (!gridContainer || !timetablesInput) return;
 
-  const timetablesList = (Array.isArray(timetablesInput) ? timetablesInput : [timetablesInput])
-    .filter(tt => activeTimetableId === 'all' || tt._id === activeTimetableId)
+  const timetablesList = [...(Array.isArray(timetablesInput) ? timetablesInput : [timetablesInput])]
     .sort(ScheduleRules.comparePriority);
   const weekEnd = dateForDay(0);
   document.getElementById('scheduleWeekLabel').textContent =
     `${displayedWeek.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} – ${weekEnd.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
-  const selected = timetablesList[0];
+  const selected = timetablesList.find(tt => tt._id === activeTimetableId);
   const summary = document.getElementById('scheduleSummary');
   summary.textContent = activeTimetableId === 'all'
     ? 'Schedules are ordered by priority. Select a schedule to change its settings.'
