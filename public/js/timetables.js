@@ -277,9 +277,9 @@ function renderWeeklyGrid(timetablesInput) {
     gridContainer.appendChild(dayHeader);
   });
 
-  // 2. Render Timeline Column (06:00 to 22:00 = 17 hours, 54px each)
-  const START_HOUR = 6;
-  const END_HOUR = 22; // 22:00
+  // 2. Keep the usual timeline, extending it for early or late occurrences.
+  const START_HOUR = Math.min(6, ...allSlots.map(slot => Math.floor(EventTiming.minutes(slot.startTime) / 60)).filter(Number.isFinite));
+  const END_HOUR = Math.min(23, Math.max(22, ...allSlots.map(slot => Math.floor(EventTiming.minutes(slot.endTime) / 60)).filter(Number.isFinite)));
   const HOUR_HEIGHT = 54; // px per hour
 
   const timeCol = document.createElement('div');
@@ -302,6 +302,7 @@ function renderWeeklyGrid(timetablesInput) {
     const dayCol = document.createElement('div');
     dayCol.className = `matrix-day-col${isToday ? ' is-today' : ''}`;
     dayCol.dataset.dayId = day.id;
+    dayCol.style.height = `${(END_HOUR - START_HOUR + 1) * HOUR_HEIGHT}px`;
 
     // Drag & Drop handlers on target day column
     dayCol.addEventListener('dragover', (e) => {

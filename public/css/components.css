@@ -677,3 +677,6 @@
   .schedule-skip-row label { grid-column: 1; }
   .schedule-skip-row .btn-icon { grid-column: 2; grid-row: 1 / 3; }
 }
+
+/* Native hidden must take precedence over form-group flex layout. */
+.event-timing [hidden] { display: none; }

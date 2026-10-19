@@ -1,5 +1,11 @@
 const Task = require('../models/Task');
 const Reminder = require('../models/Reminder');
+const EventTiming = require('../../public/js/event-timing');
+
+function resolveEventTiming(data) {
+  try { return EventTiming.resolve(data); }
+  catch (error) { error.code = 'VALIDATION_ERROR'; throw error; }
+}
 
 const getTasks = async (userId, filters = {}) => {
   const query = { userId };
@@ -102,6 +108,7 @@ const getTaskById = async (userId, taskId) => {
 const createTask = async (userId, taskData) => {
   const task = await Task.create({
     ...taskData,
+    ...resolveEventTiming(taskData),
     userId
   });
 
@@ -122,9 +129,14 @@ const createTask = async (userId, taskData) => {
 };
 
 const updateTask = async (userId, taskId, updateData) => {
+  const existing = await Task.findOne({ _id: taskId, userId });
+  if (!existing) {
+    const error = new Error('Task not found'); error.code = 'NOT_FOUND'; throw error;
+  }
+  const timing = resolveEventTiming({ ...existing.toObject(), ...updateData });
   const task = await Task.findOneAndUpdate(
     { _id: taskId, userId },
-    updateData,
+    { ...updateData, ...timing },
     { new: true, runValidators: true }
   );
 

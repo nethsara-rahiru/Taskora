@@ -32,6 +32,7 @@ const createTask = async (req, res, next) => {
       data: { task }
     });
   } catch (error) {
+    if (error.code === 'VALIDATION_ERROR') res.status(400);
     next(error);
   }
 };
@@ -44,6 +45,7 @@ const updateTask = async (req, res, next) => {
       data: { task }
     });
   } catch (error) {
+    if (error.code === 'VALIDATION_ERROR') res.status(400);
     next(error);
   }
 };

@@ -190,15 +190,36 @@ const App = {
 
         <div class="form-row">
           <div class="form-group" style="flex:1;">
-            <label class="form-label" id="dateFieldLabel">${currentItemType === 'event' ? 'Event Date' : 'Due Date'}</label>
+            <label class="form-label" id="dateFieldLabel">${currentItemType === 'event' ? 'Event Date *' : 'Due Date'}</label>
             <input type="date" id="taskDueDateInput" class="form-control" value="${dueDate}">
           </div>
 
           <div class="form-group" style="flex:1;" id="taskDueTimeGroup">
-            <label class="form-label">Time</label>
+            <label class="form-label" id="timeFieldLabel">Time</label>
             <input type="time" id="taskDueTimeInput" class="form-control" value="${taskToEdit ? taskToEdit.dueTime || taskToEdit.startTime || '' : ''}">
           </div>
         </div>
+
+        <div id="eventTimingFields" class="event-timing" hidden>
+          <div class="form-group">
+            <label for="eventEndMode" class="form-label">Event ends by</label>
+            <select id="eventEndMode" class="form-control">
+              <option value="end">End time</option>
+              <option value="duration">Duration</option>
+            </select>
+          </div>
+          <div class="form-group" id="eventEndTimeGroup">
+            <label for="eventEndTimeInput" class="form-label">End time *</label>
+            <input type="time" id="eventEndTimeInput" class="form-control" value="${taskToEdit?.endTime || ''}">
+          </div>
+          <div class="form-group" id="eventDurationGroup" hidden>
+            <label for="eventDurationInput" class="form-label">Duration (minutes) *</label>
+            <input type="number" id="eventDurationInput" class="form-control" min="1" max="1439" step="1" value="60">
+          </div>
+          <p id="eventEndPreview" class="schedule-help"></p>
+          <p class="schedule-help">Events must end on the same day. Events appear in the timetable’s Events tab.</p>
+        </div>
+        <p id="taskFormError" class="schedule-error" role="alert"></p>
 
         <div class="form-row">
           <div class="form-group" style="flex:1;">
@@ -233,16 +254,46 @@ const App = {
 
     Modal.open(taskToEdit ? (taskToEdit.itemType === 'event' ? 'Edit Event' : 'Edit Task') : 'Create New Entry', formHtml);
 
+    const syncEventTimingFields = () => {
+      const isEvent = document.querySelector('input[name="itemTypeRadio"]:checked')?.value === 'event';
+      const durationMode = document.getElementById('eventEndMode').value === 'duration';
+      document.getElementById('eventTimingFields').hidden = !isEvent;
+      document.getElementById('eventEndTimeGroup').hidden = durationMode;
+      document.getElementById('eventDurationGroup').hidden = !durationMode;
+      document.getElementById('taskDueDateInput').required = isEvent;
+      document.getElementById('taskDueTimeInput').required = isEvent;
+      document.getElementById('timeFieldLabel').textContent = isEvent ? 'Start time *' : 'Time';
+      for (const [id, active] of [['eventEndTimeInput', isEvent && !durationMode], ['eventDurationInput', isEvent && durationMode]]) {
+        document.getElementById(id).disabled = !active;
+        document.getElementById(id).required = active;
+      }
+      document.getElementById('taskFormError').textContent = '';
+      const preview = document.getElementById('eventEndPreview');
+      preview.textContent = '';
+      if (isEvent && durationMode) {
+        try {
+          const timing = EventTiming.resolve({ itemType: 'event', dueDate: document.getElementById('taskDueDateInput').value,
+            startTime: document.getElementById('taskDueTimeInput').value, durationMinutes: document.getElementById('eventDurationInput').value });
+          preview.textContent = `Ends at ${timing.endTime}`;
+        } catch (_) { /* Validation is shown when submitting. */ }
+      }
+    };
+    for (const id of ['eventEndMode', 'eventDurationInput', 'taskDueTimeInput', 'taskDueDateInput']) {
+      document.getElementById(id).addEventListener('input', syncEventTimingFields);
+    }
+    syncEventTimingFields();
+
     // Wire radio toggle listener
     const radios = document.getElementsByName('itemTypeRadio');
     radios.forEach(radio => {
       radio.addEventListener('change', (e) => {
         const val = e.target.value;
         const isEv = val === 'event';
+        syncEventTimingFields();
         document.getElementById('typeTaskLabel').className = !isEv ? 'active-type-pill' : '';
         document.getElementById('typeEventLabel').className = isEv ? 'active-type-pill' : '';
         document.getElementById('titleFieldLabel').textContent = isEv ? 'Event Title *' : 'Task Title *';
-        document.getElementById('dateFieldLabel').textContent = isEv ? 'Event Date' : 'Due Date';
+        document.getElementById('dateFieldLabel').textContent = isEv ? 'Event Date *' : 'Due Date';
         if (!taskToEdit) {
           document.getElementById('modalSubmitBtn').textContent = isEv ? 'Create Event' : 'Create Task';
         }
@@ -263,13 +314,19 @@ const App = {
         dueDate: document.getElementById('taskDueDateInput').value || null,
         dueTime: timeVal,
         startTime: selectedType === 'event' ? timeVal : null,
-        endTime: selectedType === 'event' ? timeVal : null,
+        endTime: selectedType === 'event' ? document.getElementById('eventEndTimeInput').value : null,
         reminderMinutes: parseInt(document.getElementById('taskReminderSelect').value, 10),
         tags: document.getElementById('taskTagsInput').value.split(',').map(t => t.trim()).filter(Boolean)
       };
 
       try {
+        const timingInput = { ...payload };
+        if (selectedType === 'event' && document.getElementById('eventEndMode').value === 'duration') {
+          timingInput.durationMinutes = document.getElementById('eventDurationInput').value;
+        }
+        Object.assign(payload, EventTiming.resolve(timingInput));
         const invalidates = [
+          { cacheKey: 'tasks-events', endpoint: '/tasks?itemType=event' },
           { cacheKey: 'tasks', endpoint: '/tasks' },
           { cacheKey: 'dashboard', endpoint: '/dashboard' }
         ];
@@ -283,7 +340,7 @@ const App = {
         Modal.close();
         if (window.loadCurrentPageData) window.loadCurrentPageData();
       } catch (err) {
-        Notifications.show(err.message, 'error');
+        document.getElementById('taskFormError').textContent = err.message;
       }
     });
   },
