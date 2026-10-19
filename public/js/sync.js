@@ -50,18 +50,22 @@ const SyncManager = {
    * Fetch fresh data from the API endpoint, cache it, and notify subscribers.
    */
   async _fetchAndCache(cacheKey, endpoint) {
-    if (this._inFlight[cacheKey]) return;
-    this._inFlight[cacheKey] = true;
-
+    if (this._inFlight[cacheKey]) return this._inFlight[cacheKey];
+    const request = (async () => {
+      try {
+        const data = await API.get(endpoint);
+        StorageManager.save(cacheKey, data);
+        this._notify(cacheKey, data);
+        return data;
+      } catch (err) {
+        console.warn('[SyncManager] Background fetch failed for', cacheKey, err.message);
+      }
+    })();
+    this._inFlight[cacheKey] = request;
     try {
-      const data = await API.get(endpoint);
-      StorageManager.save(cacheKey, data);
-      this._notify(cacheKey, data);
-      return data;
-    } catch (err) {
-      console.warn('[SyncManager] Background fetch failed for', cacheKey, err.message);
+      return await request;
     } finally {
-      this._inFlight[cacheKey] = false;
+      if (this._inFlight[cacheKey] === request) delete this._inFlight[cacheKey];
     }
   },
 
@@ -93,6 +97,9 @@ const SyncManager = {
    * Force refresh a single cache key from server now
    */
   async invalidate(cacheKey, endpoint) {
+    // A request started before the mutation may still contain the old status.
+    // Let it settle, then fetch the state after the mutation instead of skipping refresh.
+    if (this._inFlight[cacheKey]) await this._inFlight[cacheKey];
     StorageManager.remove(cacheKey);
     await this._fetchAndCache(cacheKey, endpoint);
   },

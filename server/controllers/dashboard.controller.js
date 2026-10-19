@@ -64,12 +64,13 @@ const getDashboardSummary = async (req, res, next) => {
     });
     todayTimetableSlots.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || '') || ScheduleRules.comparePriority(a, b));
 
-    // High priority focus tasks (high priority, not completed)
+    // All active high/urgent tasks; do not silently truncate the dashboard list.
     const highPriorityTasks = await Task.find({
       userId,
-      priority: 'high',
-      status: { $ne: 'completed' }
-    }).populate('projectId', 'name color icon').sort({ dueDate: 1 }).limit(5);
+      priority: { $in: ['high', 'urgent'] },
+      status: { $in: ['pending', 'in_progress'] }
+    }).populate('projectId', 'name color icon').sort({ dueDate: 1 });
+    highPriorityTasks.sort(ScheduleRules.comparePriority);
 
     // Upcoming tasks & events (next 7 days)
     const nextWeek = new Date(endOfToday.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -84,8 +85,17 @@ const getDashboardSummary = async (req, res, next) => {
     const recentlyCompleted = await Task.find({
       userId,
       status: 'completed',
-      completedAt: { $gte: recentCompletionCutoff, $lte: now }
-    }).populate('projectId', 'name color icon').sort({ completedAt: -1 }).limit(5);
+      $or: [
+        { completedAt: { $gte: recentCompletionCutoff, $lte: now } },
+        // Older status edits did not record completedAt; use their last update as an estimate.
+        { completedAt: null, updatedAt: { $gte: recentCompletionCutoff, $lte: now } }
+      ]
+    }).populate('projectId', 'name color icon');
+    const recentCompletionItems = recentlyCompleted.map(task => ({
+      ...task.toObject(),
+      completedAt: task.completedAt || task.updatedAt,
+      completionTimeEstimated: !task.completedAt
+    })).sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
 
     // Tomorrow's tasks & events
     const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
@@ -135,7 +145,7 @@ const getDashboardSummary = async (req, res, next) => {
         tomorrowTimetableSlots,
         highPriorityTasks,
         upcomingTasks,
-        recentlyCompleted
+        recentlyCompleted: recentCompletionItems
       }
     });
   } catch (error) {

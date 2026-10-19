@@ -109,6 +109,7 @@ const createTask = async (userId, taskData) => {
   const task = await Task.create({
     ...taskData,
     ...resolveEventTiming(taskData),
+    completedAt: taskData.status === 'completed' ? new Date() : null,
     userId
   });
 
@@ -134,9 +135,12 @@ const updateTask = async (userId, taskId, updateData) => {
     const error = new Error('Task not found'); error.code = 'NOT_FOUND'; throw error;
   }
   const timing = resolveEventTiming({ ...existing.toObject(), ...updateData });
+  const completedAt = updateData.status === 'completed'
+    ? (existing.status === 'completed' && existing.completedAt ? existing.completedAt : new Date())
+    : updateData.status && updateData.status !== 'completed' ? null : existing.completedAt;
   const task = await Task.findOneAndUpdate(
     { _id: taskId, userId },
-    { ...updateData, ...timing },
+    { ...updateData, ...timing, completedAt },
     { new: true, runValidators: true }
   );
 

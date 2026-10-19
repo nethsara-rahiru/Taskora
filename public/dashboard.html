@@ -286,7 +286,10 @@
         if (item.dueTime) {
           timeLabel = item.dueTime;
           const [h, m] = item.dueTime.split(':').map(Number);
-          if (!isFuture) isPast = (h * 60 + m) < nowMins;
+          if (!isFuture && isEvent) {
+            const [endH, endM] = (item.endTime || item.dueTime).split(':').map(Number);
+            isPast = (endH * 60 + endM) < nowMins;
+          }
         }
 
         const isOverdue = !isFuture && item.dueDate && new Date(item.dueDate) < new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -301,13 +304,15 @@
 
       const isTask = item._type !== 'slot' && item._id;
       const isCompleted = isTask && item.status === 'completed';
+      const isDimmed = isCompleted || (isPast && (item._type === 'slot' || item.itemType === 'event'));
+      const isStruck = isCompleted || (isPast && item._type === 'slot');
 
       const row = document.createElement('div');
       row.style.cssText = `
         display: flex; align-items: center; gap: 0.55rem;
         padding: 0.45rem 0;
         border-bottom: 1px solid var(--border-color);
-        opacity: ${isCompleted || isPast ? '0.45' : '1'};
+        opacity: ${isDimmed ? '0.45' : '1'};
         transition: opacity 0.2s;
         width: 100%;
         max-width: 100%;
@@ -334,8 +339,8 @@
         ${actionElHTML}
         <div style="min-width: 0; flex: 1;">
           <div style="font-size: 0.83rem; font-weight: 700; color: var(--text-main);
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            ${isCompleted || isPast ? 'text-decoration: line-through; color: var(--text-muted);' : ''}">
+            white-space: normal; overflow-wrap: anywhere;
+            ${isStruck ? 'text-decoration: line-through; color: var(--text-muted);' : ''}">
             ${TaskCard.escapeHtml(title)}
           </div>
           ${(timeLabel || subLabel) ? `<div style="font-size: 0.7rem; color: var(--text-muted); display: flex; gap: 0.35rem; align-items: center; margin-top: 0.05rem;">
@@ -553,7 +558,7 @@
             highPrioritySection.style.display = 'block';
             if (highPriorityBadge) highPriorityBadge.textContent = `${highPriorityTasks.length} Urgent`;
             highPriorityList.innerHTML = '';
-            highPriorityTasks.slice(0, 3).forEach(task => highPriorityList.appendChild(renderFocusRow(task, false)));
+            highPriorityTasks.forEach(task => highPriorityList.appendChild(renderFocusRow(task, false)));
           } else {
             highPrioritySection.style.display = 'none';
           }
@@ -601,7 +606,7 @@
                 <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:line-through; color:var(--text-muted);">${TaskCard.escapeHtml(t.title)}</span>
               </div>
               <div style="display:flex; align-items:center; gap:0.45rem; flex-shrink:0;">
-                <span style="color: var(--text-light); font-size: 0.72rem;">${new Date(t.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                <span title="${t.completionTimeEstimated ? 'Estimated from last update (older task)' : 'Completion time'}" style="color: var(--text-light); font-size: 0.72rem;">${t.completionTimeEstimated ? '~' : ''}${new Date(t.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 <button class="undo-task-btn" title="Undo task completion" style="
                   background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main);
                   font-size: 0.72rem; font-weight: 700; padding: 0.18rem 0.48rem; border-radius: var(--radius-sm);
