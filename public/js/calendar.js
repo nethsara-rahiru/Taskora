@@ -1,5 +1,10 @@
 let currentDate = new Date();
 
+// Calendar cells and 'today' are local dates, not UTC instants.
+function localCalendarDateKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 async function initCalendar() {
   document.getElementById('prevMonthBtn')?.addEventListener('click', () => {
     currentDate.setMonth(currentDate.getMonth() - 1);
@@ -37,11 +42,13 @@ function renderCalendar(allTasks) {
     grid.appendChild(emptyCell);
   }
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = localCalendarDateKey(new Date());
 
   for (let day = 1; day <= totalDays; day++) {
     const dayDate = new Date(year, month, day);
-    const dayStr = dayDate.toISOString().split('T')[0];
+    const dayStr = localCalendarDateKey(dayDate);
+
+    // Date inputs are stored as UTC midnight; preserve their selected date.
 
     const dayTasks = allTasks.filter(t => t.dueDate && new Date(t.dueDate).toISOString().split('T')[0] === dayStr);
     const count = dayTasks.length;
