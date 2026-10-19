@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap');
 
 :root {
+  color-scheme: light;
   /* Brand Primary Palette */
   --primary: #6366F1;
   --primary-hover: #4F46E5;
@@ -74,6 +75,7 @@
 
 /* Dark Theme Overrides (Harmonized Dark Palette) */
 [data-theme="dark"] {
+  color-scheme: dark;
   --bg-main: #0B0F19;
   --bg-surface: #131C2E;
   --bg-surface-hover: #1E293B;
