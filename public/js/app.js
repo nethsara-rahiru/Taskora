@@ -125,7 +125,7 @@ const App = {
     }
   },
 
-  async openTaskModal(taskToEdit = null) {
+  async openTaskModal(taskToEdit = null, defaultDueDate = '') {
     // Load projects from cache first, then fall back to API
     let projects = [];
     const cachedProjects = StorageManager.get('projects') || StorageManager.get('req_/projects');
@@ -137,6 +137,10 @@ const App = {
     }
 
     const currentItemType = taskToEdit ? (taskToEdit.itemType || 'task') : 'task';
+
+    const dueDate = taskToEdit && taskToEdit.dueDate
+      ? new Date(taskToEdit.dueDate).toISOString().split('T')[0]
+      : (/^\d{4}-\d{2}-\d{2}$/.test(defaultDueDate) ? defaultDueDate : '');
 
     const formHtml = `
       <form id="taskForm">
@@ -187,7 +191,7 @@ const App = {
         <div class="form-row">
           <div class="form-group" style="flex:1;">
             <label class="form-label" id="dateFieldLabel">${currentItemType === 'event' ? 'Event Date' : 'Due Date'}</label>
-            <input type="date" id="taskDueDateInput" class="form-control" value="${taskToEdit && taskToEdit.dueDate ? new Date(taskToEdit.dueDate).toISOString().split('T')[0] : ''}">
+            <input type="date" id="taskDueDateInput" class="form-control" value="${dueDate}">
           </div>
 
           <div class="form-group" style="flex:1;" id="taskDueTimeGroup">
