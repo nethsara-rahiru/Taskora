@@ -654,3 +654,26 @@
     transform: translateX(75%);
   }
 }
+
+/* Schedule settings and dated week navigation */
+.schedule-week-nav, .schedule-week-picker {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+.schedule-week-picker .form-control { width: auto; max-width: 100%; }
+#scheduleWeekLabel { font-size: 0.85rem; font-weight: 700; }
+.schedule-help { font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0 0.85rem; }
+.schedule-state { font-size: 0.65rem; text-transform: capitalize; opacity: 0.8; }
+.schedule-skips { border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem; min-width: 0; }
+.schedule-skip-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 36px; gap: 0.4rem; align-items: end; margin-bottom: 0.75rem; }
+.schedule-skip-row label { min-width: 0; }
+.schedule-skip-row .form-control { padding: 0.6rem 0.35rem; min-width: 0; }
+.schedule-error { color: var(--color-danger); font-size: 0.85rem; margin-top: 0.75rem; }
+@media (max-width: 480px) {
+  .schedule-skip-row { grid-template-columns: minmax(0, 1fr) 44px; }
+  .schedule-skip-row label { grid-column: 1; }
+  .schedule-skip-row .btn-icon { grid-column: 2; grid-row: 1 / 3; }
+}

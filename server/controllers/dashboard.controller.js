@@ -1,6 +1,7 @@
 const Task = require('../models/Task');
 const Project = require('../models/Project');
 const Timetable = require('../models/Timetable');
+const ScheduleRules = require('../../public/js/schedule-rules');
 
 const getDashboardSummary = async (req, res, next) => {
   try {
@@ -51,16 +52,17 @@ const getDashboardSummary = async (req, res, next) => {
     let todayTimetableSlots = [];
     const userTimetables = await Timetable.find({ userId });
     userTimetables.forEach(tt => {
-      if (tt.slots) {
+      if (tt.slots && ScheduleRules.isActiveOn(tt, now)) {
         const matchingSlots = tt.slots.filter(s => s.dayOfWeek === dayOfWeek).map(s => ({
           ...s.toObject(),
           parentTimetableTitle: tt.title,
+          priority: tt.priority || 'medium',
           color: s.color || tt.color
         }));
         todayTimetableSlots.push(...matchingSlots);
       }
     });
-    todayTimetableSlots.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+    todayTimetableSlots.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || '') || ScheduleRules.comparePriority(a, b));
 
     // High priority focus tasks (high priority, not completed)
     const highPriorityTasks = await Task.find({
@@ -98,16 +100,17 @@ const getDashboardSummary = async (req, res, next) => {
 
     let tomorrowTimetableSlots = [];
     userTimetables.forEach(tt => {
-      if (tt.slots) {
+      if (tt.slots && ScheduleRules.isActiveOn(tt, startOfTomorrow)) {
         const matchingSlots = tt.slots.filter(s => s.dayOfWeek === tomorrowDayOfWeek).map(s => ({
           ...s.toObject(),
           parentTimetableTitle: tt.title,
+          priority: tt.priority || 'medium',
           color: s.color || tt.color
         }));
         tomorrowTimetableSlots.push(...matchingSlots);
       }
     });
-    tomorrowTimetableSlots.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+    tomorrowTimetableSlots.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || '') || ScheduleRules.comparePriority(a, b));
 
     // Active projects count
     const projectsCount = await Project.countDocuments({ userId, archived: false });

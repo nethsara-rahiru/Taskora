@@ -2,6 +2,20 @@ let activeTimetableId = null;
 let cachedTimetables = [];
 let currentDayFilter = 'all';
 
+function weekStart(date) {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  start.setDate(start.getDate() - (start.getDay() + 6) % 7);
+  return start;
+}
+let displayedWeek = weekStart(new Date());
+
+function dateForDay(dayOfWeek) {
+  const date = new Date(displayedWeek);
+  date.setDate(date.getDate() + (dayOfWeek + 6) % 7);
+  return date;
+}
+
+
 const DAYS_OF_WEEK = [
   { id: 1, name: 'Monday', short: 'Mon' },
   { id: 2, name: 'Tuesday', short: 'Tue' },
@@ -13,6 +27,13 @@ const DAYS_OF_WEEK = [
 ];
 
 async function initTimetablesPage() {
+  for (const [id, offset] of [['prevWeekBtn', -7], ['nextWeekBtn', 7], ['thisWeekBtn', 0]]) {
+    document.getElementById(id)?.addEventListener('click', () => {
+      if (offset) displayedWeek.setDate(displayedWeek.getDate() + offset);
+      else displayedWeek = weekStart(new Date());
+      renderWeeklyGrid(cachedTimetables);
+    });
+  }
   document.getElementById('createTimetableBtn')?.addEventListener('click', () => openTimetableModal());
   document.getElementById('addSlotBtn')?.addEventListener('click', () => openSlotModal());
   document.getElementById('editTimetableMetaBtn')?.addEventListener('click', () => {
@@ -37,8 +58,7 @@ async function initTimetablesPage() {
       document.querySelectorAll('#dayFilterTabsContainer .tab-btn').forEach(b => b.classList.remove('active'));
       e.target.classList.add('active');
       currentDayFilter = e.target.dataset.day;
-      const activeTimetable = cachedTimetables.find(t => t._id === activeTimetableId);
-      if (activeTimetable) renderWeeklyGrid(activeTimetable);
+      renderWeeklyGrid(cachedTimetables);
     });
   });
 
@@ -49,7 +69,7 @@ const VIRTUAL_EVENTS_ID = '__virtual_events__';
 
 function loadCurrentPageData() {
   SyncManager.load('timetables', '/timetables', (data) => {
-    cachedTimetables = data?.timetables || [];
+    cachedTimetables = [...(data?.timetables || [])].sort(ScheduleRules.comparePriority);
     // Load events from tasks API and inject virtual Events schedule
     loadEventsVirtualSchedule(cachedTimetables, (merged) => {
       cachedTimetables = merged;
@@ -66,7 +86,7 @@ function loadEventsVirtualSchedule(baseTimetables, callback) {
     const virtualSlots = [];
     events.forEach(ev => {
       if (!ev.startTime || !ev.endTime || !ev.dueDate) return;
-      const dow = new Date(ev.dueDate).getDay(); // 0=Sun
+      const dow = new Date(ev.dueDate).getUTCDay(); // 0=Sun
       virtualSlots.push({
         _id: ev._id,
         subject: ev.title,
@@ -76,7 +96,8 @@ function loadEventsVirtualSchedule(baseTimetables, callback) {
         color: '#9333EA',
         room: '',
         teacher: '',
-        isVirtual: true
+        isVirtual: true,
+        occurrenceDate: new Date(ev.dueDate).toISOString().slice(0, 10)
       });
     });
 
@@ -150,6 +171,7 @@ function renderTimetablesUI(timetables) {
     >
       <span class="tab-dot" style="background: ${t.color || 'var(--primary)'};"></span>
       ${TaskCard.escapeHtml(t.title)}
+      ${t.isVirtual ? '' : `<span class="schedule-state">${t.isPaused ? 'Paused' : (t.priority || 'medium')}</span>`}
     </button>
   `).join('');
 
@@ -179,23 +201,46 @@ function renderWeeklyGrid(timetablesInput) {
   const gridContainer = document.getElementById('weeklyGridContainer');
   if (!gridContainer || !timetablesInput) return;
 
-  const timetablesList = Array.isArray(timetablesInput) ? timetablesInput : [timetablesInput];
+  const timetablesList = (Array.isArray(timetablesInput) ? timetablesInput : [timetablesInput])
+    .filter(tt => activeTimetableId === 'all' || tt._id === activeTimetableId)
+    .sort(ScheduleRules.comparePriority);
+  const weekEnd = dateForDay(0);
+  document.getElementById('scheduleWeekLabel').textContent =
+    `${displayedWeek.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} – ${weekEnd.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+  const selected = timetablesList[0];
+  const summary = document.getElementById('scheduleSummary');
+  summary.textContent = activeTimetableId === 'all'
+    ? 'Schedules are ordered by priority. Select a schedule to change its settings.'
+    : selected?.isVirtual ? 'Events appear only in the week of their date.'
+    : selected ? [
+      `${selected.priority || 'medium'} priority`,
+      selected.isPaused ? 'Paused — resume in Settings'
+        : selected.endsOn && selected.endsOn < ScheduleRules.dateKey(displayedWeek) ? 'Ended'
+        : selected.startsOn && selected.startsOn > ScheduleRules.dateKey(weekEnd) ? 'Not started yet' : 'Enabled',
+      selected.startsOn ? `From ${selected.startsOn}` : '',
+      selected.endsOn ? `Through ${selected.endsOn}` : 'No end date',
+      selected.skipRanges?.length ? `${selected.skipRanges.length} skip range(s)` : ''
+    ].filter(Boolean).join(' · ') : '';
+
 
   // Trigger smooth transition animation
   gridContainer.classList.remove('tab-fade-in');
   void gridContainer.offsetWidth; // Force DOM reflow
   gridContainer.classList.add('tab-fade-in');
 
-  const todayDayOfWeek = new Date().getDay(); // 0=Sun, 1=Mon...
+  const todayKey = ScheduleRules.dateKey(new Date());
 
   // Flatten all slots across timetables
   const allSlots = [];
   timetablesList.forEach(tt => {
     (tt.slots || []).forEach(s => {
+      const occurrenceDate = ScheduleRules.dateKey(dateForDay(s.dayOfWeek));
+      if (tt.isVirtual ? s.occurrenceDate !== occurrenceDate : !ScheduleRules.isActiveOn(tt, occurrenceDate)) return;
       allSlots.push({
         ...s,
         parentTimetableId: tt._id,
         parentTimetableTitle: tt.title,
+        priority: tt.priority || 'medium',
         parentColor: tt.color || '#6366F1'
       });
     });
@@ -221,13 +266,13 @@ function renderWeeklyGrid(timetablesInput) {
   gridContainer.appendChild(cornerHeader);
 
   daysToRender.forEach(day => {
-    const isToday = day.id === todayDayOfWeek;
+    const isToday = ScheduleRules.dateKey(dateForDay(day.id)) === todayKey;
     const daySlotsCount = allSlots.filter(s => s.dayOfWeek === day.id).length;
 
     const dayHeader = document.createElement('div');
     dayHeader.className = `matrix-header-cell${isToday ? ' is-today' : ''}`;
     dayHeader.innerHTML = `
-      <span>${currentDayFilter === 'all' ? day.short : day.name}</span>
+      <span>${currentDayFilter === 'all' ? day.short : day.name} ${dateForDay(day.id).getDate()}</span>
       <span style="font-size: 0.65rem; opacity: 0.75; font-weight: 600;">${daySlotsCount} ${daySlotsCount === 1 ? 'slot' : 'slots'}</span>
     `;
     gridContainer.appendChild(dayHeader);
@@ -252,7 +297,7 @@ function renderWeeklyGrid(timetablesInput) {
 
   // 3. Render Day Grid Columns
   daysToRender.forEach(day => {
-    const isToday = day.id === todayDayOfWeek;
+    const isToday = ScheduleRules.dateKey(dateForDay(day.id)) === todayKey;
     const daySlots = allSlots.filter(s => s.dayOfWeek === day.id);
 
     const dayCol = document.createElement('div');
@@ -564,6 +609,7 @@ window.addEventListener('beforeunload', () => { flushPendingSaves(); });
 window.addEventListener('visibilitychange', () => { if (document.hidden) flushPendingSaves(); });
 
 function openTimetableModal(timetableToEdit = null) {
+  let skipRanges = (timetableToEdit?.skipRanges || []).map(range => ({ start: range.start, end: range.end }));
   const formHtml = `
     <form id="timetableForm">
       <div class="form-group">
@@ -581,6 +627,43 @@ function openTimetableModal(timetableToEdit = null) {
         <input type="color" id="ttColorInput" class="form-control" value="${timetableToEdit ? timetableToEdit.color : '#6366F1'}" style="height:44px; padding:3px; cursor:pointer;">
       </div>
 
+      <div class="form-row">
+        <div class="form-group" style="flex:1;">
+          <label for="ttPriorityInput" class="form-label">Priority</label>
+          <select id="ttPriorityInput" class="form-control">
+            ${ScheduleRules.priorities.map(priority => `<option value="${priority}" ${(timetableToEdit?.priority || 'medium') === priority ? 'selected' : ''}>${priority[0].toUpperCase() + priority.slice(1)}</option>`).join('')}
+          </select>
+          <p class="schedule-help">Higher priorities appear first. Overlapping slots remain visible.</p>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:1;">
+          <label for="ttStartsOnInput" class="form-label">Start date (optional)</label>
+          <input type="date" id="ttStartsOnInput" class="form-control" value="${timetableToEdit?.startsOn || ''}">
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label for="ttEndsOnInput" class="form-label">Follow through (optional)</label>
+          <input type="date" id="ttEndsOnInput" class="form-control" value="${timetableToEdit?.endsOn || ''}">
+        </div>
+      </div>
+      <p class="schedule-help">Includes the end date. Leave blank to keep repeating.</p>
+      <div class="form-group">
+        <label class="form-label"><input type="checkbox" id="ttPausedInput" ${timetableToEdit?.isPaused ? 'checked' : ''}> Pause this schedule</label>
+        <p class="schedule-help">Hide all occurrences until you turn this off. Your slots stay saved.</p>
+      </div>
+      <fieldset class="schedule-skips">
+        <legend class="form-label">Skip dates or weeks</legend>
+        <p class="schedule-help">Skip a single date or an inclusive date range. Remove a range to restore those occurrences.</p>
+        <div id="ttSkipRanges"></div>
+        <button type="button" class="btn btn-secondary btn-sm" id="ttAddSkipRange">Add date / range</button>
+        <div class="schedule-week-picker">
+          <label for="ttSkipWeekInput" class="form-label">Skip a week containing</label>
+          <input type="date" id="ttSkipWeekInput" class="form-control">
+          <button type="button" class="btn btn-secondary btn-sm" id="ttAddSkipWeek">Skip whole week</button>
+        </div>
+        <p class="schedule-help">Whole weeks run Monday through Sunday.</p>
+      </fieldset>
+      <p id="ttSettingsError" class="schedule-error" role="alert"></p>
       <div style="display:flex; justify-content:flex-end; gap:0.75rem; margin-top:1.5rem;">
         <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancel</button>
         <button type="submit" class="btn btn-primary">${timetableToEdit ? 'Save Changes' : 'Create Timetable'}</button>
@@ -588,18 +671,58 @@ function openTimetableModal(timetableToEdit = null) {
     </form>
   `;
 
-  Modal.open(timetableToEdit ? 'Edit Timetable' : 'Create New Timetable', formHtml);
+  Modal.open(timetableToEdit ? 'Schedule Settings' : 'Create New Timetable', formHtml);
+
+  const renderRanges = () => {
+    const container = document.getElementById('ttSkipRanges');
+    container.innerHTML = '';
+    skipRanges.forEach((range, index) => {
+      const row = document.createElement('div');
+      row.className = 'schedule-skip-row';
+      row.innerHTML = `<label class="form-label">From<input type="date" class="form-control skip-start" required value="${range.start}"></label>
+        <label class="form-label">Through<input type="date" class="form-control skip-end" required value="${range.end}"></label>
+        <button type="button" class="btn-icon" aria-label="Remove skip range ${index + 1}">×</button>`;
+      row.querySelector('.skip-start').addEventListener('change', e => {
+        range.start = e.target.value;
+        if (!range.end) { range.end = range.start; row.querySelector('.skip-end').value = range.end; }
+      });
+      row.querySelector('.skip-end').addEventListener('change', e => { range.end = e.target.value; });
+      row.querySelector('button').addEventListener('click', () => { skipRanges.splice(index, 1); renderRanges(); });
+      container.appendChild(row);
+    });
+  };
+  renderRanges();
+  document.getElementById('ttAddSkipRange').addEventListener('click', () => {
+    skipRanges.push({ start: '', end: '' }); renderRanges();
+  });
+  document.getElementById('ttAddSkipWeek').addEventListener('click', () => {
+    const input = document.getElementById('ttSkipWeekInput');
+    if (!input.value) { input.focus(); return; }
+    const start = weekStart(new Date(`${input.value}T12:00:00`));
+    const end = new Date(start); end.setDate(end.getDate() + 6);
+    skipRanges.push({ start: ScheduleRules.dateKey(start), end: ScheduleRules.dateKey(end) });
+    renderRanges(); input.value = '';
+  });
 
   document.getElementById('timetableForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const payload = {
       title: document.getElementById('ttTitleInput').value.trim(),
       description: document.getElementById('ttDescInput').value.trim(),
-      color: document.getElementById('ttColorInput').value
+      color: document.getElementById('ttColorInput').value,
+      priority: document.getElementById('ttPriorityInput').value,
+      startsOn: document.getElementById('ttStartsOnInput').value || null,
+      endsOn: document.getElementById('ttEndsOnInput').value || null,
+      isPaused: document.getElementById('ttPausedInput').checked,
+      skipRanges
     };
 
     try {
-      const invalidates = [{ cacheKey: 'timetables', endpoint: '/timetables' }];
+      ScheduleRules.normalizeSettings(payload);
+      const invalidates = [
+        { cacheKey: 'timetables', endpoint: '/timetables' },
+        { cacheKey: 'dashboard', endpoint: '/dashboard' }
+      ];
       if (timetableToEdit) {
         await SyncManager.mutate('PUT', `/timetables/${timetableToEdit._id}`, payload, { invalidates });
         Notifications.show('Schedule updated!', 'success');
@@ -611,7 +734,7 @@ function openTimetableModal(timetableToEdit = null) {
       Modal.close();
       loadCurrentPageData();
     } catch (err) {
-      Notifications.show(err.message, 'error');
+      document.getElementById('ttSettingsError').textContent = err.message;
     }
   });
 }

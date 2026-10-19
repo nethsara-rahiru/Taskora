@@ -1,7 +1,9 @@
 const Timetable = require('../models/Timetable');
+const ScheduleRules = require('../../public/js/schedule-rules');
 
 const getTimetables = async (userId) => {
-  return await Timetable.find({ userId }).sort({ isPrimary: -1, createdAt: -1 });
+  const timetables = await Timetable.find({ userId }).sort({ isPrimary: -1, createdAt: -1 });
+  return timetables.sort(ScheduleRules.comparePriority);
 };
 
 const getTimetableById = async (userId, timetableId) => {
@@ -15,6 +17,7 @@ const getTimetableById = async (userId, timetableId) => {
 };
 
 const createTimetable = async (userId, data) => {
+  const settings = ScheduleRules.normalizeSettings(data);
   // If set to primary, reset previous primary flag
   if (data.isPrimary) {
     await Timetable.updateMany({ userId }, { isPrimary: false });
@@ -30,20 +33,31 @@ const createTimetable = async (userId, data) => {
     description: data.description || '',
     color: data.color || '#6366F1',
     isPrimary,
-    slots: data.slots || []
+    slots: data.slots || [],
+    ...settings
   });
 
   return timetable;
 };
 
 const updateTimetable = async (userId, timetableId, updateData) => {
+  const existing = await getTimetableById(userId, timetableId);
+  const settings = ScheduleRules.normalizeSettings({
+    startsOn: existing.startsOn || null,
+    endsOn: existing.endsOn || null,
+    ...updateData
+  });
+  const safeUpdate = { ...settings };
+  for (const field of ['title', 'description', 'color', 'isPrimary', 'slots']) {
+    if (field in updateData) safeUpdate[field] = updateData[field];
+  }
   if (updateData.isPrimary) {
     await Timetable.updateMany({ userId }, { isPrimary: false });
   }
 
   const timetable = await Timetable.findOneAndUpdate(
     { _id: timetableId, userId },
-    updateData,
+    safeUpdate,
     { new: true, runValidators: true }
   );
 

@@ -62,6 +62,15 @@ const timetableSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    priority: { type: String, enum: ['low', 'medium', 'high', 'urgent'], default: 'medium' },
+    startsOn: { type: String, default: null },
+    endsOn: { type: String, default: null },
+    isPaused: { type: Boolean, default: false },
+    skipRanges: [{
+      _id: false,
+      start: { type: String, required: true },
+      end: { type: String, required: true }
+    }],
     slots: [slotSchema]
   },
   {
