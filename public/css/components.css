@@ -617,3 +617,40 @@
     transform: translateY(0) scale(1);
   }
 }
+
+
+/* Indeterminate activity bar: stays out of the way of page controls. */
+.sync-loading-bar {
+  position: fixed;
+  inset: 0 0 auto;
+  height: 3px;
+  overflow: hidden;
+  background: var(--primary-light);
+  z-index: 1200;
+  pointer-events: none;
+}
+
+.sync-loading-bar[hidden] {
+  display: none;
+}
+
+.sync-loading-bar::after {
+  content: '';
+  display: block;
+  width: 40%;
+  height: 100%;
+  background: var(--primary-gradient);
+  animation: syncLoading 1.2s ease-in-out infinite;
+}
+
+@keyframes syncLoading {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(350%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sync-loading-bar::after {
+    animation: none;
+    transform: translateX(75%);
+  }
+}

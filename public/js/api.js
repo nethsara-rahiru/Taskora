@@ -1,3 +1,33 @@
+// One indicator for all requests, including concurrent page loads and background sync.
+const SyncIndicator = {
+  pending: 0,
+  element: null,
+  hideTimer: null,
+
+  start() {
+    clearTimeout(this.hideTimer);
+    this.pending++;
+    if (!this.element) {
+      this.element = document.createElement('div');
+      this.element.className = 'sync-loading-bar';
+      this.element.setAttribute('role', 'progressbar');
+      this.element.setAttribute('aria-label', 'Syncing data');
+      document.body.appendChild(this.element);
+    }
+    this.element.hidden = false;
+  },
+
+  finish() {
+    this.pending = Math.max(0, this.pending - 1);
+    if (this.pending === 0) {
+      // Bridge consecutive sync requests so the bar does not flicker between them.
+      this.hideTimer = setTimeout(() => {
+        if (this.pending === 0 && this.element) this.element.hidden = true;
+      }, 150);
+    }
+  }
+};
+
 const API = {
   baseUrl: '/api',
 
@@ -27,6 +57,7 @@ const API = {
       throw new Error('You are offline and no cached data is available.');
     }
 
+    SyncIndicator.start();
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, config);
       const data = await response.json().catch(() => ({}));
@@ -58,6 +89,8 @@ const API = {
       }
       console.error(`[API Error] ${endpoint}:`, error.message);
       throw error;
+    } finally {
+      SyncIndicator.finish();
     }
   },
 
