@@ -77,10 +77,12 @@ const getDashboardSummary = async (req, res, next) => {
       status: { $ne: 'completed' }
     }).populate('projectId', 'name color icon').sort({ dueDate: 1, dueTime: 1 }).limit(6);
 
-    // Recently completed
+    // Keep the recent card limited to the last 15 hours.
+    const recentCompletionCutoff = new Date(now.getTime() - 15 * 60 * 60 * 1000);
     const recentlyCompleted = await Task.find({
       userId,
-      status: 'completed'
+      status: 'completed',
+      completedAt: { $gte: recentCompletionCutoff, $lte: now }
     }).populate('projectId', 'name color icon').sort({ completedAt: -1 }).limit(5);
 
     // Tomorrow's tasks & events
