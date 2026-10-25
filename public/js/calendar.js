@@ -103,6 +103,7 @@ function openDateDetailsPopup(monthName, day, year, dateStr, dayTasks) {
         <p style="font-weight: 800; font-size: 1.05rem; color: var(--text-main);">Free Day! No items scheduled</p>
         <p style="font-size: 0.85rem; margin-top: 0.25rem;">Enjoy your open schedule or add a new task for this day.</p>
         <button class="btn btn-primary btn-sm" style="margin-top: 1.25rem;" onclick="Modal.close(); App.openTaskModal(null, '${dateStr}');">+ Add Task for ${monthName} ${day}</button>
+        <p style="margin-top:0.75rem;"><a href="/assistant.html?date=${dateStr}&mode=quick_add">Ask AI to plan this date →</a></p>
       </div>
     `;
   } else {

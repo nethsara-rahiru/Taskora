@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Assistant — Taskora</title>
+  <!-- Apply the theme before styles load to avoid a light flash on navigation. -->
+  <script>
+    (() => {
+      let theme = 'system';
+      try {
+        theme = localStorage.getItem('taskora_theme') || 'system';
+      } catch (_) {
+        // Storage can be unavailable in restricted browser contexts.
+      }
+      const dark = theme === 'dark' ||
+        (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    })();
+  </script>
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+</head>
+<body>
+  <div class="app-container">
+    <div class="sidebar"></div>
+
+    <div class="main-content">
+      <header class="top-header">
+        <div class="header-title-group">
+          <h2 style="font-size: 1.25rem; font-weight: 800;">AI Assistant</h2>
+          <span class="header-date-badge" id="headerDateBadge">Settings</span>
+        </div>
+
+        <div class="user-profile-menu">
+          <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Theme">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          </button>
+          <div class="user-avatar" id="headerUserAvatar">U</div>
+        </div>
+      </header>
+
+      <main class="page-container ai-page">
+        <section class="ai-panel">
+          <div class="ai-intro"><span class="ai-symbol" aria-hidden="true">✦</span><div><h1>Your planning assistant</h1><p class="ai-help">Turn a thought into a task, find time for important work, or ask what to focus on next.</p></div></div>
+          <p id="aiSetupStatus" class="ai-help" role="status">Loading your AI preferences…</p>
+          <a id="aiSetupLink" href="/settings.html#groqSettings">Configure Groq AI →</a>
+          <form id="aiRequestForm">
+            <div class="form-row">
+              <div class="form-group" style="flex:1;"><label class="form-label" for="aiMode">What would you like to do?</label>
+                <select class="form-control" id="aiMode"><option value="quick_add">Quick add tasks / events</option><option value="schedule">Schedule existing tasks</option><option value="recommend">Suggestions & recommendations</option></select>
+              </div>
+              <div class="form-group" style="flex:1;"><label class="form-label" for="aiPlanningDate">Plan from</label><input type="date" id="aiPlanningDate" class="form-control" required></div>
+            </div>
+            <div class="form-group"><label for="aiPrompt" class="form-label">Your request</label><textarea id="aiPrompt" class="form-control" rows="4" maxlength="3000" required placeholder="e.g. Add a 45-minute project meeting tomorrow at 2 pm"></textarea></div>
+            <div class="ai-actions ai-examples">
+              <button type="button" class="btn btn-secondary btn-sm" data-mode="quick_add" data-prompt="Add a 45-minute project meeting tomorrow at 2 pm.">Quick event</button>
+              <button type="button" class="btn btn-secondary btn-sm" data-mode="schedule" data-prompt="Find free times for my urgent and high-priority tasks this week. Avoid my events and schedules.">Plan my tasks</button>
+              <button type="button" class="btn btn-secondary btn-sm" data-mode="recommend" data-prompt="What should I focus on next? Suggest a realistic plan and point out any scheduling problems.">What’s next?</button>
+            </div>
+            <p class="ai-help">Plans cover seven days from the selected date. AI uses your timezone and working hours, and respects paused schedules and skipped dates. Review every proposal before saving.</p>
+            <button class="btn btn-primary" id="generateAiBtn" type="submit">Generate suggestions</button>
+          </form>
+          <p id="aiRequestStatus" class="ai-help" role="status" aria-live="polite"></p>
+        </section>
+        <section id="aiResults" aria-label="AI proposals" hidden></section>
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/storage.js"></script>
+  <script src="/js/sync.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/components/notification.js"></script>
+  <script src="/js/components/modal.js"></script>
+  <script src="/js/components/sidebar.js"></script>
+  <script src="/js/event-timing.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/ai.js"></script>
+</body>
+</html>

@@ -10,6 +10,7 @@ const App = {
       this.initQuickAddBtn();
       this.initThemeToggle();
       this.initMobileFab();
+      this.initAiShortcut();
       this.startNotificationPoller();
       this.initDataSync();
 
@@ -100,6 +101,15 @@ const App = {
 
       btn.addEventListener('click', () => Sidebar.toggleMobileDrawer());
     }
+  },
+
+  initAiShortcut() {
+    const menu = document.querySelector('.user-profile-menu');
+    if (!menu || document.getElementById('aiShortcut') || location.pathname === '/assistant.html') return;
+    const link = document.createElement('a');
+    link.id = 'aiShortcut'; link.href = '/assistant.html'; link.className = 'btn-icon';
+    link.title = 'AI Assistant'; link.setAttribute('aria-label', 'AI Assistant'); link.textContent = '✦';
+    menu.prepend(link);
   },
 
   initMobileFab() {

@@ -680,3 +680,25 @@
 
 /* Native hidden must take precedence over form-group flex layout. */
 .event-timing [hidden] { display: none; }
+
+/* AI planning and settings */
+.ai-page { max-width: 980px; }
+.ai-panel { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-xl); padding: 1.5rem; margin-bottom: 1.25rem; min-width: 0; }
+.ai-intro { display: flex; align-items: flex-start; gap: 1rem; }
+.ai-intro h1 { font-size: 1.5rem; }
+.ai-symbol { color: var(--primary); background: var(--primary-light); padding: 0.55rem 0.8rem; border-radius: var(--radius-md); font-size: 1.5rem; }
+.ai-help { color: var(--text-muted); font-size: 0.85rem; margin: 0.75rem 0; overflow-wrap: anywhere; }
+.ai-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+#aiRequestForm { margin-top: 1.25rem; }
+.ai-proposal h3 { font-size: 1.1rem; }
+.ai-proposal .form-row > .form-group { flex: 1; }
+.ai-conflict { padding: 0.75rem; color: var(--color-danger); background: var(--color-danger-bg); border-radius: var(--radius-sm); font-size: 0.85rem; margin: 0.75rem 0; overflow-wrap: anywhere; }
+.ai-recommendations { padding-left: 1.25rem; color: var(--text-main); font-size: 0.9rem; }
+.ai-recommendations li { margin: 0.6rem 0; overflow-wrap: anywhere; }
+.ai-panel [disabled], .ai-settings-card button[disabled] { opacity: 0.6; cursor: default; }
+@media (max-width: 768px) {
+  .ai-panel { padding: 1rem; }
+  .ai-intro { gap: 0.65rem; }
+  .ai-intro h1 { font-size: 1.2rem; }
+  .ai-actions .btn { white-space: normal; }
+}

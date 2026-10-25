@@ -32,6 +32,15 @@ const userSchema = new mongoose.Schema(
         default: false
       }
     },
+    groqKeyEncrypted: { type: String, select: false },
+    aiSettings: {
+      enabled: { type: Boolean, default: false },
+      model: { type: String, default: 'llama-3.3-70b-versatile' },
+      timezone: { type: String, default: 'Asia/Colombo' },
+      workdayStart: { type: String, default: '08:00' },
+      workdayEnd: { type: String, default: '18:00' },
+      defaultDuration: { type: Number, default: 30 }
+    },
     preferences: {
       theme: {
         type: String,
@@ -53,4 +62,9 @@ const userSchema = new mongoose.Schema(
   }
 );
 
+userSchema.set('toJSON', { transform(doc, value) {
+  delete value.passwordHash;
+  delete value.groqKeyEncrypted;
+  return value;
+} });
 module.exports = mongoose.model('User', userSchema);

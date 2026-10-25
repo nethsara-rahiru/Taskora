@@ -52,6 +52,7 @@ const generateToken = (userId) => {
 const sanitizeUser = (user) => {
   const userObj = user.toObject ? user.toObject() : { ...user };
   delete userObj.passwordHash;
+  delete userObj.groqKeyEncrypted;
   return userObj;
 };
 
