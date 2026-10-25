@@ -6,11 +6,12 @@ const AiPlan = require('../models/AiPlan');
 const taskService = require('./task.service');
 const keys = require('../lib/ai-key');
 const rules = require('./ai-validation');
+const groqRequest = require('./groq-request');
 const calls = new Map();
 
 async function account(userId) { return User.findById(userId).select('+groqKeyEncrypted'); }
 function publicSettings(user) {
-  return { ...rules.DEFAULTS, ...user.aiSettings?.toObject(), configured: !!user.groqKeyEncrypted,
+  return { ...rules.DEFAULTS, ...user.aiSettings?.toObject(), model: groqRequest.modelFor(user.aiSettings?.model), configured: !!user.groqKeyEncrypted,
     encryptionReady: keys.storageReady(), models: rules.MODELS };
 }
 async function getSettings(userId) { return publicSettings(await account(userId)); }
@@ -44,26 +45,24 @@ async function groq(user, messages, test = false) {
   if (!user.groqKeyEncrypted) rules.fail('Add your Groq API key in Settings → Groq AI.', 400);
   let apiKey;
   try { apiKey = keys.decrypt(user.groqKeyEncrypted); } catch (error) { rules.fail(error.message, 503); }
+  const model = groqRequest.modelFor(user.aiSettings?.model);
   let response;
   try {
     response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: user.aiSettings?.model || rules.DEFAULTS.model, messages,
-        temperature: 0.2, max_completion_tokens: test ? 128 : 2500, response_format: { type: 'json_object' } }),
+      body: JSON.stringify(groqRequest.requestBody(model, messages, test)),
       signal: AbortSignal.timeout(30000)
     });
   } catch (_) { rules.fail('Groq could not be reached or timed out. Please try again.', 502); }
-  if (!response.ok) {
-    if ([401, 403].includes(response.status)) rules.fail('Groq rejected the saved API key. Update it in Settings.', 400);
-    if (response.status === 429) rules.fail('Groq rate limit reached. Please wait and try again.', 429);
-    rules.fail('Groq could not complete this request. Try another supported model or try again later.', 502);
-  }
+  if (!response.ok) throw await groqRequest.providerError(response, model, apiKey);
   try {
     const text = await response.text();
     if (text.length > 100000) throw new Error();
-    const json = JSON.parse(text);
-    return JSON.parse(json.choices[0].message.content);
-  } catch (_) { rules.fail('Groq returned an incomplete or invalid response. Please try again.', 502); }
+    return groqRequest.parseCompletion(JSON.parse(text));
+  } catch (error) {
+    if (error.status) throw error;
+    rules.fail('Groq returned an incomplete or invalid response. Please try again.', 502);
+  }
 }
 async function testConnection(userId) {
   throttle(userId);
@@ -89,14 +88,14 @@ async function generate(userId, input) {
   const end = rules.addDays(start, 6);
   throttle(userId);
   const [tasks, busy] = await Promise.all([
-    Task.find({ userId, status: { $in: ['pending', 'in_progress'] } }).sort({ dueDate: 1, createdAt: -1 }).limit(100).lean(),
+    Task.find({ userId, status: { $in: ['pending', 'in_progress'] } }).sort({ dueDate: 1, createdAt: -1 }).limit(30).lean(),
     occupancy(userId, start, end, settings.defaultDuration)
   ]);
   const taskMap = new Map(tasks.map(task => [String(task._id), task]));
   const context = { currentDate: today, currentTime: new Intl.DateTimeFormat('en-GB', { timeZone: settings.timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(),
     timezone: settings.timezone, planningStart: start, planningEnd: end, workingHours: [settings.workdayStart, settings.workdayEnd], defaultTaskDurationMinutes: settings.defaultDuration,
-    tasks: tasks.map(task => ({ id: String(task._id), title: task.title, description: task.description?.slice(0, 400), itemType: task.itemType, priority: task.priority,
-      dueDate: task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : null, dueTime: task.dueTime, startTime: task.startTime, endTime: task.endTime })), busy };
+    tasks: tasks.map(task => ({ id: String(task._id), title: task.title, description: task.description?.slice(0, 120), itemType: task.itemType, priority: task.priority,
+      dueDate: task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : null, dueTime: task.dueTime, startTime: task.startTime, endTime: task.endTime })), busy: groqRequest.compactBusy(busy) };
   const system = `You are Taskora's practical scheduling assistant. Return a JSON object with summary (string), recommendations (array of strings), and actions (array, maximum 8).
 Each action is {operation:"create"|"update", taskId:null|"existing id", title, description, itemType:"task"|"event", priority:"low"|"medium"|"high"|"urgent", dueDate:"YYYY-MM-DD"|null, dueTime:"HH:mm"|null, endTime:"HH:mm"|null, reason:string}.
 Quick_add turns the user's language into new tasks/events. Schedule proposes date/time changes only for existing TASKS. Recommend gives useful advice and optional task placements.

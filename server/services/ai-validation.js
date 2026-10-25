@@ -1,6 +1,6 @@
 const EventTiming = require('../../public/js/event-timing');
 const ScheduleRules = require('../../public/js/schedule-rules');
-const MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'openai/gpt-oss-120b'];
+const { MODELS, modelFor } = require('./groq-request');
 const DEFAULTS = { enabled: false, model: MODELS[0], timezone: 'Asia/Colombo', workdayStart: '08:00', workdayEnd: '18:00', defaultDuration: 30 };
 function fail(message, status = 400) { const error = new Error(message); error.status = status; throw error; }
 function validTimezone(value) {
@@ -17,7 +17,7 @@ function addDays(date, days) {
   return value.toISOString().slice(0, 10);
 }
 function settings(data, existing = DEFAULTS) {
-  const result = { ...DEFAULTS, ...existing };
+  const result = { ...DEFAULTS, ...existing, model: modelFor(existing.model) };
   for (const key of Object.keys(DEFAULTS)) if (key in data) result[key] = data[key];
   if (typeof result.enabled !== 'boolean' || !MODELS.includes(result.model) || !validTimezone(result.timezone)) fail('Choose valid AI settings, a supported model, and an IANA timezone.');
   if (!Number.isFinite(EventTiming.minutes(result.workdayStart)) || !Number.isFinite(EventTiming.minutes(result.workdayEnd)) || result.workdayStart >= result.workdayEnd) fail('Working hours must start before they end on the same day.');

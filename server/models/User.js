@@ -35,7 +35,7 @@ const userSchema = new mongoose.Schema(
     groqKeyEncrypted: { type: String, select: false },
     aiSettings: {
       enabled: { type: Boolean, default: false },
-      model: { type: String, default: 'llama-3.3-70b-versatile' },
+      model: { type: String, default: 'openai/gpt-oss-20b' },
       timezone: { type: String, default: 'Asia/Colombo' },
       workdayStart: { type: String, default: '08:00' },
       workdayEnd: { type: String, default: '18:00' },
