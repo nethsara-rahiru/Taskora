@@ -28,10 +28,10 @@ Requires Node.js 18+ and outbound HTTPS access to `api.groq.com`.
 
 1. Set a stable random `AI_ENCRYPTION_KEY` (32+ characters) in the server's `.env` and restart Taskora. Generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Keep it backed up: changing it requires saving Groq keys again. An explicitly configured, non-default `JWT_SECRET` of at least 32 characters is also supported as a fallback.
 2. Open **Settings → Groq AI**, add your Groq key, enable AI, choose a model, timezone, working hours, and default task duration. Save, then **Test connection**. Keys are encrypted in MongoDB, excluded from user/profile responses, and never sent back to the browser. Blank key input keeps the existing key; **Remove key** deletes it and disables AI.
-3. Open **AI Assistant** from the sidebar or the ✦ shortcut. Use **Quick add** for natural-language tasks/events, **Schedule existing tasks** for placements, or **Suggestions & recommendations** for advice. Calendar date popups also link to the assistant with that date selected.
+3. Open **AI Assistant** from the sidebar or the ✦ shortcut. Use **Quick add** for natural-language tasks/events, **Plan / reschedule existing items** for placements, **Update a task, event or schedule** for edits, or **Suggestions & recommendations** for advice. Calendar date popups also link to the assistant with that date selected.
 4. Review the proposed titles, dates, times, and priorities. Edit them if necessary, then apply individual proposals. Generation never changes tasks automatically. Proposals expire after an hour; saved proposals cannot create duplicate tasks when retried. Availability is rechecked at save time against tasks, events, and active timetable slots, including pause/end/skip rules.
 
-Planning uses seven days from the selected date, up to 30 active tasks as model context, and at most eight proposals per request. Task placements reserve the default duration without adding end times to tasks. Events require same-day start/end times. Existing events are treated as fixed commitments. Requests and the relevant task/schedule context are shared with Groq only when generating suggestions; no Groq key or full account profile is included in the model prompt. AI output can be wrong, so drafts remain editable and require an individual save.
+Planning uses seven days from the selected date, up to 30 active tasks as model context, and at most eight proposals per request. Task placements reserve the default duration without adding end times to tasks. Events require same-day start/end times. Existing events are treated as commitments unless you explicitly request an event update. Requests and the relevant task/schedule context are shared with Groq only when generating suggestions; no Groq key or full account profile is included in the model prompt. AI output can be wrong, so drafts remain editable and require an individual save.
 
 Groq authentication failures, rate limits, timeouts, malformed output, scheduling conflicts, and tasks changed since generation produce actionable errors. The integration uses Groq's OpenAI-compatible chat endpoint with strict JSON Schema structured outputs; a live connection requires your own Groq key.
 
@@ -40,3 +40,16 @@ Run feature tests with `node --test server/tests/ai-validation.test.js server/te
 Supported Groq models: `openai/gpt-oss-20b` (default), `openai/gpt-oss-120b`, and `qwen/qwen3.8-27b`. Legacy Llama settings fall back to GPT OSS 20B; save Settings to persist your preferred model. Model access and rate limits depend on your Groq account. Provider errors now include the HTTP status, model, provider error code/message, and retry delay when supplied, with API keys redacted. See [models](https://console.groq.com/docs/models), [structured outputs](https://console.groq.com/docs/structured-outputs), and [rate limits](https://console.groq.com/docs/rate-limits).
 
 To reduce token-rate pressure, planning context uses 30 active tasks, short descriptions, and merged busy windows. Full server-side conflict checks still use the original occupied intervals. Groq also enforces account-specific requests-per-minute and tokens-per-minute/day limits; changing models does not necessarily increase those limits.
+
+### Updating existing items with AI
+
+Choose **Update a task, event or schedule**, then select an exact item in **Update a specific item**. Each request reads its latest details from the database.
+
+- Tasks: edit title, description, priority, date, or time; metadata-only edits can leave a task unscheduled.
+- Events: change title, description, priority, date, start time, and end time, preserving the existing event record.
+- Schedules: change title, description, priority, start/end dates, pause/resume, and skipped dates/ranges. Existing weekly slots stay intact.
+- Weekly slots: change subject, weekday, start/end times, location, or organizer. This edits the recurring template for all active weeks, with conflict checks covering the selected planning week.
+
+Selecting a schedule also allows proposals for its own slots. Review current details and proposed fields before applying. Multiple slot proposals for the same schedule can be applied in sequence; external changes still invalidate stale proposals. Schedule and slot creation/deletion are not AI operations.
+
+For automatic targeting the model sees up to three schedules with ten slots each; selecting a schedule includes up to thirty slots, and selecting a particular slot always includes that slot. Task/event selections include the exact selected active record even if it falls outside the usual context limit.

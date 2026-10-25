@@ -2,7 +2,12 @@ const MODELS = ['openai/gpt-oss-20b', 'openai/gpt-oss-120b', 'qwen/qwen3.8-27b']
 function modelFor(value) { return MODELS.includes(value) ? value : MODELS[0]; }
 function object(properties) { return { type: 'object', properties, required: Object.keys(properties), additionalProperties: false }; }
 const nullableString = { type: ['string', 'null'] };
-const action = object({ operation: { type: 'string', enum: ['create', 'update'] }, taskId: nullableString,
+const schedule = object({ title: { type: 'string' }, description: { type: 'string' }, priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'] },
+  startsOn: nullableString, endsOn: nullableString, isPaused: { type: 'boolean' },
+  skipRanges: { type: 'array', items: object({ start: { type: 'string' }, end: { type: 'string' } }) } });
+const slot = object({ subject: { type: 'string' }, dayOfWeek: { type: 'integer' }, startTime: { type: 'string' }, endTime: { type: 'string' }, room: { type: 'string' }, teacher: { type: 'string' } });
+const action = object({ targetType: { type: 'string', enum: ['task', 'event', 'timetable', 'slot'] }, timetableId: nullableString, slotId: nullableString,
+  schedule: { anyOf: [schedule, { type: 'null' }] }, slot: { anyOf: [slot, { type: 'null' }] }, operation: { type: 'string', enum: ['create', 'update'] }, taskId: nullableString,
   title: { type: 'string' }, description: { type: 'string' }, itemType: { type: 'string', enum: ['task', 'event'] },
   priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'] }, dueDate: nullableString,
   dueTime: nullableString, endTime: nullableString, reason: { type: 'string' } });

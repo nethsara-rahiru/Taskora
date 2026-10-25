@@ -52,7 +52,7 @@ function busyIntervals(tasks, timetables, start, end, duration = 30) {
     for (const timetable of timetables) {
       if (!ScheduleRules.isActiveOn(timetable, date)) continue;
       for (const slot of timetable.slots || []) {
-        if (slot.dayOfWeek === day) blocks.push({ date, start: EventTiming.minutes(slot.startTime), end: EventTiming.minutes(slot.endTime), title: `${timetable.title}: ${slot.subject}` });
+        if (slot.dayOfWeek === day) blocks.push({ date, start: EventTiming.minutes(slot.startTime), end: EventTiming.minutes(slot.endTime), title: `${timetable.title}: ${slot.subject}`, timetableId: String(timetable._id), slotId: String(slot._id) });
       }
     }
   }

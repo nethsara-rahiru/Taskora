@@ -49,9 +49,13 @@
           <form id="aiRequestForm">
             <div class="form-row">
               <div class="form-group" style="flex:1;"><label class="form-label" for="aiMode">What would you like to do?</label>
-                <select class="form-control" id="aiMode"><option value="quick_add">Quick add tasks / events</option><option value="schedule">Schedule existing tasks</option><option value="recommend">Suggestions & recommendations</option></select>
+                <select class="form-control" id="aiMode"><option value="quick_add">Quick add tasks / events</option><option value="schedule">Plan / reschedule existing items</option><option value="update">Update a task, event or schedule</option><option value="recommend">Suggestions & recommendations</option></select>
               </div>
               <div class="form-group" style="flex:1;"><label class="form-label" for="aiPlanningDate">Plan from</label><input type="date" id="aiPlanningDate" class="form-control" required></div>
+            </div>
+            <div class="form-group"><label class="form-label" for="aiTarget">Update a specific item (optional)</label>
+              <select id="aiTarget" class="form-control"><option value="">Let AI identify the item from my request</option></select>
+              <p class="ai-help">Choose an active task/event, a schedule, or a weekly slot to include its current details in the request.</p>
             </div>
             <div class="form-group"><label for="aiPrompt" class="form-label">Your request</label><textarea id="aiPrompt" class="form-control" rows="4" maxlength="3000" required placeholder="e.g. Add a 45-minute project meeting tomorrow at 2 pm"></textarea></div>
             <div class="ai-actions ai-examples">
@@ -59,7 +63,7 @@
               <button type="button" class="btn btn-secondary btn-sm" data-mode="schedule" data-prompt="Find free times for my urgent and high-priority tasks this week. Avoid my events and schedules.">Plan my tasks</button>
               <button type="button" class="btn btn-secondary btn-sm" data-mode="recommend" data-prompt="What should I focus on next? Suggest a realistic plan and point out any scheduling problems.">What’s next?</button>
             </div>
-            <p class="ai-help">Plans cover seven days from the selected date. AI uses your timezone and working hours, and respects paused schedules and skipped dates. Review every proposal before saving.</p>
+            <p class="ai-help">Plans cover seven days from the selected date. AI uses your timezone and working hours, and respects paused schedules and skipped dates. Tasks, events, schedule settings and weekly slots can be updated. Review the current and proposed details before saving.</p>
             <button class="btn btn-primary" id="generateAiBtn" type="submit">Generate suggestions</button>
           </form>
           <p id="aiRequestStatus" class="ai-help" role="status" aria-live="polite"></p>

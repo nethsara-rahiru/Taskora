@@ -42,7 +42,7 @@ test('retrying after a saved task but failed plan-result write does not duplicat
       const task = { ...values };
       tasks.set(String(task._id), task); return task;
     } },
-    '../lib/ai-key': {}, './ai-validation': rules, './groq-request': require('../services/groq-request')
+    '../lib/ai-key': {}, './ai-validation': rules, './groq-request': require('../services/groq-request'), './ai-targets': require('../services/ai-targets'), './timetable.service': {}
   };
   const context = { module: { exports: {} }, require: name => {
     if (!(name in dependencies)) throw new Error(`Unexpected dependency: ${name}`);

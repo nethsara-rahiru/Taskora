@@ -702,3 +702,6 @@
   .ai-intro h1 { font-size: 1.2rem; }
   .ai-actions .btn { white-space: normal; }
 }
+
+.ai-before { font-size: 0.82rem; padding: 0.75rem; margin: 0.75rem 0; border-left: 3px solid var(--primary); background: var(--primary-light); overflow-wrap: anywhere; }
+#aiTarget { min-width: 0; max-width: 100%; text-overflow: ellipsis; }
