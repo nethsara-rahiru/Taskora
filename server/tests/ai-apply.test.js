@@ -32,6 +32,7 @@ test('retrying after a saved task but failed plan-result write does not duplicat
   };
   const dependencies = {
     mongoose,
+    './weather.service': { forPlanning: async () => ({ status: 'not_configured' }) },
     '../models/User': { findById: () => ({ select: async () => ({ aiSettings: { toObject: () => rules.DEFAULTS } }) }) },
     '../models/Task': { exists: async query => tasks.has(String(query._id)), find: () => ({ limit: () => ({ lean: async () => [] }) }) },
     '../models/Timetable': { find: () => ({ lean: async () => [] }) },

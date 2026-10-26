@@ -44,4 +44,20 @@ async function forecast(latitude, longitude) {
   const data = await cached(`forecast:${lat}:${lon}`, url, 10 * 60000, value => !!value.current && Array.isArray(value.daily?.time) && Array.isArray(value.hourly?.time));
   return { ...data, source: 'Open-Meteo' };
 }
-module.exports = { search, forecast };
+// Send a compact forecast, never raw coordinates, to the planning model.
+async function forPlanning(location, start, end) {
+  if (!location) return { status: 'not_configured' };
+  try {
+    const data = await forecast(String(location.latitude), String(location.longitude));
+    const days = data.daily.time.map((date, i) => ({ date, weatherCode: data.daily.weather_code?.[i],
+      lowC: data.daily.temperature_2m_min?.[i], highC: data.daily.temperature_2m_max?.[i], rainChancePercent: data.daily.precipitation_probability_max?.[i] }))
+      .filter(day => day.date >= start && day.date <= end);
+    if (!days.length) return { status: 'unavailable', location: location.name };
+    const hours = data.hourly.time.map((time, i) => ({ time, temperatureC: data.hourly.temperature_2m?.[i], rainChancePercent: data.hourly.precipitation_probability?.[i], weatherCode: data.hourly.weather_code?.[i] }))
+      .filter(hour => hour.time >= data.current.time && hour.time.slice(0, 10) >= start && hour.time.slice(0, 10) <= end).slice(0, 24);
+    return { status: 'available', location: location.name, timezone: data.timezone, source: 'Open-Meteo', asOf: data.current.time,
+      current: { temperatureC: data.current.temperature_2m, feelsLikeC: data.current.apparent_temperature, weatherCode: data.current.weather_code, windKmh: data.current.wind_speed_10m },
+      daily: days, hourly: hours };
+  } catch (_) { return { status: 'unavailable', location: location.name }; }
+}
+module.exports = { search, forecast, forPlanning };

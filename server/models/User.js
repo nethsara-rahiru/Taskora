@@ -32,6 +32,14 @@ const userSchema = new mongoose.Schema(
         default: false
       }
     },
+    weatherLocation: {
+      type: new mongoose.Schema({
+        name: { type: String, required: true, maxlength: 160 },
+        latitude: { type: Number, required: true, min: -90, max: 90 },
+        longitude: { type: Number, required: true, min: -180, max: 180 }
+      }, { _id: false }),
+      default: null
+    },
     groqKeyEncrypted: { type: String, select: false },
     aiSettings: {
       enabled: { type: Boolean, default: false },

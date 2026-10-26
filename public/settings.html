@@ -68,6 +68,20 @@
           </form>
         </div>
 
+        <section id="locationSettings" class="modal-container ai-settings-card" style="max-width:100%; margin-bottom:1.75rem; transform:none;">
+          <h3>Location &amp; weather planning</h3>
+          <p class="ai-help">Save your usual city for the Weather page and AI planning. Your city forecast helps with outdoor work and travel. City coordinates are sent to Open-Meteo; the city name and forecast are included in AI requests.</p>
+          <form id="locationSearchForm" class="weather-search">
+            <div class="form-group"><label for="settingsLocationCity" class="form-label">Find your city</label><input id="settingsLocationCity" class="form-control" type="search" minlength="2" maxlength="100" placeholder="e.g. Colombo" required></div>
+            <button type="submit" class="btn btn-secondary">Find city</button>
+            <button id="settingsLocationLocate" type="button" class="btn btn-secondary">Use my location</button>
+          </form>
+          <div id="settingsLocationResults" class="weather-locations" aria-label="Matching locations"></div>
+          <p id="settingsLocationSelected" class="ai-help">Loading saved location…</p>
+          <div class="ai-actions"><button id="settingsLocationSave" type="button" class="btn btn-primary" disabled>Save location</button><button id="settingsLocationClear" type="button" class="btn btn-secondary" disabled>Remove saved location</button></div>
+          <p id="settingsLocationStatus" class="ai-help" role="status" aria-live="polite"></p>
+        </section>
+
         <section id="groqSettings" class="modal-container ai-settings-card" style="max-width:100%; margin-bottom:1.75rem; transform:none;">
           <h3>Groq AI</h3>
           <p class="ai-help">Add your own Groq key to turn requests into task/event drafts, find open times, and get recommendations. Your key stays on the server.</p>
@@ -95,9 +109,10 @@
               <datalist id="aiTimezones"><option value="Asia/Colombo"><option value="Asia/Kolkata"><option value="UTC"><option value="Europe/London"><option value="America/New_York"></datalist>
             </div>
             <div class="form-row">
-              <div class="form-group" style="flex:1;"><label class="form-label" for="aiWorkStart">Working day starts</label><input type="time" id="aiWorkStart" class="form-control" required></div>
-              <div class="form-group" style="flex:1;"><label class="form-label" for="aiWorkEnd">Working day ends</label><input type="time" id="aiWorkEnd" class="form-control" required></div>
+              <div class="form-group" style="flex:1;"><label class="form-label" for="aiWorkStart">Preferred focus time starts</label><input type="time" id="aiWorkStart" class="form-control" required></div>
+              <div class="form-group" style="flex:1;"><label class="form-label" for="aiWorkEnd">Preferred focus time ends</label><input type="time" id="aiWorkEnd" class="form-control" required></div>
             </div>
+            <p class="ai-help">Focus times are preferences. AI can suggest manageable progress in other free gaps while protecting sleep, breaks and recovery.</p>
             <div class="form-group"><label class="form-label" for="aiTaskDuration">Default task duration (minutes)</label><input type="number" id="aiTaskDuration" class="form-control" min="5" max="480" required></div>
             <p class="ai-help">Task duration reserves space for AI planning; it does not add an end time to tasks. Requests and relevant tasks/schedules are shared with Groq only when you use AI.</p>
             <div class="ai-actions">
@@ -175,6 +190,7 @@
   <script src="/js/components/sidebar.js"></script>
   <script src="/js/event-timing.js"></script>
   <script src="/js/app.js"></script>
+  <script src="/js/location-settings.js"></script>
   <script src="/js/settings.js"></script>
   <script src="/js/ai-settings.js"></script>
 </body>

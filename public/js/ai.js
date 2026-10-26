@@ -141,6 +141,9 @@ const AiAssistant = {
     const results = document.getElementById('aiResults'); results.hidden = false; results.replaceChildren();
     const overview = this.element('div', 'ai-panel'); overview.append(this.element('h2', '', 'Your proposed plan'), this.element('p', 'ai-help', plan.summary),
       this.element('p', 'ai-help', `Times shown in ${plan.timezone}. Proposals expire after one hour.`));
+    if (plan.weather) overview.append(this.element('p', 'ai-help', plan.weather.status === 'available'
+      ? `Weather included: ${plan.weather.location} · ${plan.weather.asOf} (${plan.weather.timezone}).`
+      : plan.weather.status === 'unavailable' ? 'Weather is unavailable; this plan uses your commitments.' : 'Save a location in Settings to include weather in new plans.'));
     const list = this.element('ul', 'ai-recommendations');
     plan.recommendations.forEach(text => list.append(this.element('li', '', text))); overview.append(list); results.append(overview);
     plan.actions.forEach(action => {

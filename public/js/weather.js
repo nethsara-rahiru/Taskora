@@ -17,7 +17,7 @@ const WeatherPage = {
     LoadingUI.bindForm(document.getElementById('weatherSearchForm'), () => this.search());
     LoadingUI.bindAction(document.getElementById('weatherLocate'), () => this.locate());
     LoadingUI.bindAction(this.refresh, () => this.update());
-    const saved = StorageManager.get(this.storageKey());
+    const saved = Auth.currentUser.weatherLocation || StorageManager.get(this.storageKey());
     if (this.validLocation(saved)) { this.location = saved; LoadingUI.run(this.refresh, () => this.update()); }
     const refreshIfDue = () => {
       if (document.visibilityState === 'visible' && this.location && !this.loading && Date.now() - this.lastAttempt > 15 * 60000) {

@@ -1,6 +1,7 @@
 async function loadCurrentPageData() {
   const user = await Auth.getCurrentUser();
   if (!user) return;
+  LocationSettings.init(user);
 
   // Profile Form
   document.getElementById('settingsName').value = user.name || '';

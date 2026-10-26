@@ -50,3 +50,20 @@ test('provider errors and incomplete forecasts can be retried without being repo
     assert.equal((await weather.forecast('1', '1')).source, 'Open-Meteo');
   } finally { global.fetch = original; }
 });
+
+test('planning forecast is compact, dated and omits coordinates, with graceful missing data fallback', async () => {
+  const original = global.fetch;
+  try {
+    assert.deepEqual(await weather.forPlanning(null, '2026-10-26', '2026-11-01'), { status: 'not_configured' });
+    global.fetch = async () => ({ ok: true, json: async () => ({ latitude: 8, longitude: 81, timezone: 'Asia/Colombo', current: { time: '2026-10-26T12:00', temperature_2m: 30 },
+      hourly: { time: ['2026-10-26T11:00', '2026-10-26T13:00'], precipitation_probability: [20, 90], temperature_2m: [29, 30] },
+      daily: { time: ['2026-10-26', '2026-10-27'], precipitation_probability_max: [90, 70], temperature_2m_max: [31, 32], temperature_2m_min: [24, 25] } }) });
+    const result = await weather.forPlanning({ name: 'Saved city', latitude: 8, longitude: 81 }, '2026-10-26', '2026-10-26');
+    assert.equal(result.status, 'available'); assert.equal(result.location, 'Saved city'); assert.equal(result.daily.length, 1);
+    assert.equal(result.hourly.length, 1); assert.equal(result.hourly[0].rainChancePercent, 90);
+    assert.equal(result.latitude, undefined); assert.equal(result.longitude, undefined);
+    assert.equal((await weather.forPlanning({ name: 'Saved city', latitude: 8, longitude: 81 }, '2027-01-01', '2027-01-07')).status, 'unavailable');
+    global.fetch = async () => { throw new Error('Provider offline'); };
+    assert.deepEqual(await weather.forPlanning({ name: 'Other city', latitude: 9, longitude: 82 }, '2026-10-26', '2026-11-01'), { status: 'unavailable', location: 'Other city' });
+  } finally { global.fetch = original; }
+});

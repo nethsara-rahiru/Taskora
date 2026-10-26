@@ -5,16 +5,16 @@ const fs = require('node:fs');
 const path = require('node:path');
 const rules = require('../services/ai-validation');
 
-function setup(output) {
-  let requests = 0;
-  const chain = { sort() { return this; }, limit() { return this; }, lean: async () => [] };
+function setup(output, options = {}) {
+  let requests = 0; let sent;
+  const chain = { sort() { return this; }, limit() { return this; }, lean: async () => options.tasks || [] };
   const dependencies = {
     mongoose: require('mongoose'),
-    '../models/User': { findById: () => ({ select: async () => ({ groqKeyEncrypted: 'encrypted', aiSettings: { toObject: () => ({ ...rules.DEFAULTS, enabled: true }) } }) }) },
+    '../models/User': { findById: () => ({ select: async () => ({ groqKeyEncrypted: 'encrypted', weatherLocation: options.location || null, aiSettings: { toObject: () => ({ ...rules.DEFAULTS, enabled: true }) } }) }) },
     '../models/Task': { find: () => chain },
-    '../models/Timetable': { find: () => chain },
+    '../models/Timetable': { find: () => ({ sort() { return this; }, lean: async () => [] }) },
     '../models/AiPlan': { create: () => { throw new Error('Advice must not write an actionable plan'); } },
-    './task.service': {}, './timetable.service': {},
+    './task.service': {}, './timetable.service': {}, './weather.service': { forPlanning: async () => options.weather || { status: 'not_configured' } },
     '../lib/ai-key': { decrypt: () => 'test-key' }, './ai-validation': rules,
     './groq-request': require('../services/groq-request'), './ai-targets': require('../services/ai-targets'),
     '../../public/js/schedule-rules': require('../../public/js/schedule-rules')
@@ -24,7 +24,7 @@ function setup(output) {
     return dependencies[name];
   }, fetch: async (url, options) => {
     requests++;
-    const request = JSON.parse(options.body);
+    const request = JSON.parse(options.body); sent = JSON.parse(request.messages.at(-1).content);
     // Reproduce Groq's rejection when advice lacking actions is sent to the plan schema.
     const required = request.response_format.json_schema.schema.required;
     if (required.some(key => !(key in output))) {
@@ -33,7 +33,7 @@ function setup(output) {
     return new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(output) } }] }));
   } };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../services/ai.service.js'), 'utf8'), context);
-  return { api: context.module.exports, requests: () => requests };
+  return { api: context.module.exports, requests: () => requests, sent: () => sent };
 }
 const input = { mode: 'recommend', adviceOnly: true, date: '2026-10-26', prompt: 'Help me work today.' };
 
@@ -58,4 +58,24 @@ test('malformed advice still fails and other AI requests keep requiring actions'
   const wrongMode = setup({ summary: 'Advice', recommendations: [] });
   await assert.rejects(wrongMode.api.generate('user', { ...input, mode: 'schedule' }), /recommendations mode/);
   assert.equal(wrongMode.requests(), 0);
+});
+
+test('planning receives workload estimates and saved-location weather as additional context', async () => {
+  const forecast = { status: 'available', location: 'Colombo', timezone: 'Asia/Colombo', asOf: '2026-10-26T12:00', source: 'Open-Meteo', daily: [{ date: '2026-10-26', rainChancePercent: 90 }] };
+  const { api, sent } = setup({ summary: 'A short task fits before the rain.', recommendations: ['Start your report indoors.'] }, {
+    weather: forecast, tasks: [{ _id: '1', title: 'Report', itemType: 'task' }, { _id: '2', title: 'Reading', itemType: 'task' }]
+  });
+  const result = await api.generate('user', input);
+  assert.equal(sent().context.weather.daily[0].rainChancePercent, 90);
+  assert.equal(sent().context.workload.unfinishedTasksShown, 2);
+  assert.equal(sent().context.workload.estimatedMinutesForShownTasks, 2 * rules.DEFAULTS.defaultDuration);
+  assert.equal(result.weather.location, 'Colombo');
+  assert.equal(result.actions.length, 0);
+});
+test('weather outages do not prevent daily advice', async () => {
+  const { api, sent } = setup({ summary: 'Keep going with a small step.', recommendations: [] }, { weather: { status: 'unavailable', location: 'Colombo' } });
+  const result = await api.generate('user', input);
+  assert.equal(sent().context.weather.status, 'unavailable');
+  assert.equal(result.weather.status, 'unavailable');
+  assert.equal(result.summary, 'Keep going with a small step.');
 });
