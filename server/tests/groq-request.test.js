@@ -60,3 +60,18 @@ test('busy context is compacted without losing occupied time or crossing dates',
   assert.equal(compact[0].start, 540); assert.equal(compact[0].end, 630);
   assert.equal(compact[1].start, 660); assert.equal(compact[2].date, '2026-11-06');
 });
+
+test('dashboard advice uses its own strict schema without requiring actions', () => {
+  for (const model of groq.MODELS) {
+    const request = groq.requestBody(model, [{ role: 'user', content: 'Help me work today' }], false, true);
+    const format = request.response_format.json_schema;
+    assert.equal(format.name, 'taskora_advice');
+    assert.equal(format.strict, true);
+    assert.deepEqual(format.schema.required, ['summary', 'recommendations']);
+    assert.equal(format.schema.additionalProperties, false);
+    assert.equal(format.schema.properties.actions, undefined);
+    assert.equal(format.schema.properties.recommendations.items.type, 'string');
+    assert(groq.requestBody(model, []).response_format.json_schema.schema.required.includes('actions'));
+    assert.equal(groq.requestBody(model, [], true, true).response_format.json_schema.name, 'connection_check');
+  }
+});

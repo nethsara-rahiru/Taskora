@@ -32,8 +32,8 @@ const DailyAdvice = {
     this.status.textContent = 'Planning your day around your current commitments…';
     this.content.setAttribute('aria-busy', 'true');
     try {
-      const plan = await API.post('/ai/plan', { mode: 'recommend', date,
-        prompt: `Help me work effectively today, ${date}, from the current time onward. Use my unfinished tasks, deadlines, priorities, events, active schedules and working hours. Give a short overview and 3–6 concrete suggestions in chronological order, with realistic focus blocks, breaks and buffers. Point out conflicts or overload and what can wait. Use the timezone in my settings. If the workday is over, suggest a light wrap-up rather than work in the past. Only advise; return an empty actions array.` });
+      const plan = await API.post('/ai/plan', { mode: 'recommend', adviceOnly: true, date,
+        prompt: `Help me work effectively today, ${date}, from the current time onward. Use my unfinished tasks, deadlines, priorities, events, active schedules and working hours. Give a short overview and 3–6 concrete suggestions in chronological order, with realistic focus blocks, breaks and buffers. Point out conflicts or overload and what can wait. Use the timezone in my settings. If the workday is over, suggest a light wrap-up rather than work in the past. Only provide a summary and recommendations; do not propose changes to stored entries.` });
       const saved = { date, summary: plan.summary, recommendations: plan.recommendations, generatedAt: new Date().toISOString(), timezone: this.settings.timezone };
       StorageManager.save(this.cacheKey(), saved);
       this.render(saved);

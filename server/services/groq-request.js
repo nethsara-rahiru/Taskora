@@ -12,12 +12,13 @@ const action = object({ targetType: { type: 'string', enum: ['task', 'event', 't
   priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'] }, dueDate: nullableString,
   dueTime: nullableString, endTime: nullableString, reason: { type: 'string' } });
 const planSchema = object({ summary: { type: 'string' }, recommendations: { type: 'array', items: { type: 'string' } }, actions: { type: 'array', items: action } });
-function requestBody(model, messages, test = false) {
+const adviceSchema = object({ summary: { type: 'string' }, recommendations: { type: 'array', items: { type: 'string' } } });
+function requestBody(model, messages, test = false, adviceOnly = false) {
   model = modelFor(model);
   return { model, messages, temperature: 0.2, max_completion_tokens: test ? 512 : 3072,
     ...(model.startsWith('openai/gpt-oss-') ? { reasoning_effort: 'low' } : {}),
-    response_format: { type: 'json_schema', json_schema: { name: test ? 'connection_check' : 'taskora_plan', strict: true,
-      schema: test ? object({ connected: { type: 'boolean' } }) : planSchema } } };
+    response_format: { type: 'json_schema', json_schema: { name: test ? 'connection_check' : adviceOnly ? 'taskora_advice' : 'taskora_plan', strict: true,
+      schema: test ? object({ connected: { type: 'boolean' } }) : adviceOnly ? adviceSchema : planSchema } } };
 }
 // Merge overlapping busy windows before sending context to Groq. Server-side
 // conflict checks still use the full records; no occupied time is omitted.
