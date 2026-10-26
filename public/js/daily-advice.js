@@ -26,14 +26,14 @@ const DailyAdvice = {
     const parts = new Intl.DateTimeFormat('en-CA', { timeZone: this.settings.timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
     return ['year', 'month', 'day'].map(type => parts.find(part => part.type === type).value).join('-');
   },
-  cacheKey() { return `daily-advice:${Auth.currentUser._id}`; },
+  cacheKey() { return `daily-advice:v2:${Auth.currentUser._id}`; },
   async generate() {
     const date = this.today();
     this.status.textContent = 'Planning your day around your current commitments…';
     this.content.setAttribute('aria-busy', 'true');
     try {
       const plan = await API.post('/ai/plan', { mode: 'recommend', adviceOnly: true, date,
-        prompt: `Help me work effectively today, ${date}, from the current time onward. Use my unfinished tasks, deadlines, priorities, events, active schedules and working hours. Give a short overview and 3–6 concrete suggestions in chronological order, with realistic focus blocks, breaks and buffers. Point out conflicts or overload and what can wait. Use the timezone in my settings. If the workday is over, suggest a light wrap-up rather than work in the past. Only provide a summary and recommendations; do not propose changes to stored entries.` });
+        prompt: `Help me work effectively today, ${date}, from the current time onward. Use my unfinished tasks, deadlines, priorities, events, active schedules and working hours. Give a friendly one- or two-sentence summary and 2–3 short, helpful suggestions. Talk to me naturally, without explaining your reasoning or listing the clock time, timezone, working hours or deadline checks. Mention specific tasks or times only if useful. Suggest realistic focus blocks or breaks when appropriate. Use the timezone in my settings. If the workday is over, gently suggest relaxing or an optional light wrap-up; avoid rigid rules about when I can work. Only provide a summary and recommendations; do not propose changes to stored entries.` });
       const saved = { date, summary: plan.summary, recommendations: plan.recommendations, generatedAt: new Date().toISOString(), timezone: this.settings.timezone };
       StorageManager.save(this.cacheKey(), saved);
       this.render(saved);
