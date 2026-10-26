@@ -259,10 +259,14 @@
     let _dashboardData = null;
 
     // ── Compact Focus Row Renderer ──
-    // isFuture: if true, item is on a future day so NEVER fade it
+    // Use the entry date before comparing event times; priority cards mix days.
     function renderFocusRow(item, isFuture = false) {
       const now = new Date();
       const nowMins = now.getHours() * 60 + now.getMinutes();
+      const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      // Due dates are stored as UTC date labels, not local timestamps.
+      const dueDateKey = item.dueDate ? String(item.dueDate).slice(0, 10) : '';
+      const isFutureDate = dueDateKey ? dueDateKey > todayKey : isFuture;
 
       let isPast = false;
       let timeLabel = '';
@@ -297,13 +301,13 @@
         if (item.dueTime) {
           timeLabel = item.dueTime;
           const [h, m] = item.dueTime.split(':').map(Number);
-          if (!isFuture && isEvent) {
+          if (!isFutureDate && isEvent) {
             const [endH, endM] = (item.endTime || item.dueTime).split(':').map(Number);
             isPast = (endH * 60 + endM) < nowMins;
           }
         }
 
-        const isOverdue = !isFuture && item.dueDate && new Date(item.dueDate) < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const isOverdue = dueDateKey && dueDateKey < todayKey;
         if (isOverdue) {
           isPast = true;
           typeTag = 'OVERDUE';
