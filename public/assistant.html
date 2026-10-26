@@ -42,6 +42,19 @@
       </header>
 
       <main class="page-container ai-page">
+        <details class="ai-panel" id="aiMemorySection">
+          <summary class="memory-heading">AI Memory <span id="aiMemoryCount" class="ai-help"></span></summary>
+          <p class="ai-help">Things you want your assistant to know about your life, routines and tasks. These notes personalize future suggestions and are included in requests to Groq.</p>
+          <label class="form-label"><input type="checkbox" id="aiMemoryAutoLearn" disabled> Let AI remember useful details I share in requests</label>
+          <p class="ai-help">AI-added notes are labeled below. You can edit or remove any note. AI never overwrites your notes automatically. Automatic learning uses an extra Groq request; you can turn it off and manage memories yourself.</p>
+          <form id="aiMemoryForm">
+            <div class="form-group"><label for="aiMemoryCategory" class="form-label">Category</label><select id="aiMemoryCategory" class="form-control"><option value="preferences">Preferences</option><option value="lifestyle">Lifestyle &amp; routines</option><option value="tasks">Tasks &amp; goals</option><option value="personal">About me</option></select></div>
+            <div class="form-group"><label for="aiMemoryContent" class="form-label">What should AI remember?</label><textarea id="aiMemoryContent" class="form-control" rows="3" maxlength="400" required placeholder="e.g. I focus best in the morning and prefer short study sessions."></textarea></div>
+            <div class="ai-actions"><button type="submit" id="aiMemorySave" class="btn btn-primary" disabled>Add memory</button><button type="button" id="aiMemoryCancel" class="btn btn-secondary" hidden>Cancel edit</button><button type="button" id="aiMemoryReload" class="btn btn-secondary">Refresh memories</button></div>
+          </form>
+          <p id="aiMemoryStatus" class="ai-help" role="status" aria-live="polite">Loading memories…</p>
+          <div id="aiMemoryList" class="memory-list" aria-label="Saved memories"></div>
+        </details>
         <section class="ai-panel">
           <div class="ai-intro"><span class="ai-symbol" aria-hidden="true">✦</span><div><h1>Your planning assistant</h1><p class="ai-help">Turn a thought into a task, find time for important work, or ask what to focus on next.</p></div></div>
           <p id="aiSetupStatus" class="ai-help" role="status">Loading your AI preferences…</p>
@@ -83,6 +96,7 @@
   <script src="/js/components/sidebar.js"></script>
   <script src="/js/event-timing.js"></script>
   <script src="/js/app.js"></script>
+  <script src="/js/ai-memory.js"></script>
   <script src="/js/ai.js"></script>
 </body>
 </html>

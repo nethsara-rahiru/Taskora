@@ -71,3 +71,14 @@ Run weather tests with `node --test server/tests/weather.test.js`.
 Daily advice and assistant plans prioritize achievable progress based on unfinished workload, urgency, estimated effort and real gaps around commitments. Preferred focus hours are guidance rather than a hard cutoff. Suggestions should be motivating and concise while preserving sleep, breaks, meals and recovery. Task effort uses the default duration as an estimate, not a known completion time. Plans consider the saved-location forecast for weather-sensitive tasks and travel; fixed commitments still require an explicit request before being moved.
 
 Saved locations require no migration. They are optional, validated and scoped to the signed-in account. New daily advice uses a separate cache for each saved coordinate pair. Run location validation tests with `node --test server/tests/weather-location.test.js`.
+
+
+## AI Memory
+
+Open **AI Assistant → AI Memory** to add, edit or delete notes about preferences, lifestyle, tasks/goals or personal context. Save up to 30 notes of 400 characters each. Notes belong to the signed-in account and persist across devices. New dashboard advice and all assistant planning modes include them; the dashboard cache changes when memory is edited.
+
+**Let AI remember useful details I share in requests** is enabled by default and can be switched off. With it enabled, assistant requests run a separate small Groq extraction alongside generation, adding up to three distinct lasting facts explicitly shared in the request. AI-added notes are labeled; AI does not automatically overwrite or delete notes. Disabling learning keeps existing memories available to suggestions. Dashboard prompts never teach memories, and generated advice, weather and task titles are not treated as new personal facts. Memory extraction can fail without failing the plan. It uses an additional provider request and an eight-second timeout.
+
+Notes are included in Groq requests as contextual data. The current request and user-entered notes take priority over older AI-added notes; memories do not grant permission to alter tasks. Memory API routes require an authenticated account, enforce limits and validate contents. Optimistic revision checks preserve concurrent manual edits and prevent learning from restoring notes removed while generation was in progress. Raw notes are excluded from general profile responses and the browser's generic API cache; editing memory requires a connection. Saved memories are embedded in the user document, so existing accounts need no migration.
+
+Run memory tests with `node --test server/tests/ai-memory.test.js server/tests/ai-advice.test.js server/tests/groq-request.test.js`.

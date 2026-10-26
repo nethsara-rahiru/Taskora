@@ -40,6 +40,7 @@ const API = {
 
   async request(endpoint, options = {}) {
     const method = options.method || 'GET';
+    const cacheable = method === 'GET' && !endpoint.startsWith('/ai/memory');
     const config = {
       method,
       headers: {
@@ -55,6 +56,7 @@ const API = {
 
     // If offline and it's a GET, return from StorageManager cache as fallback
     if (!navigator.onLine && method === 'GET') {
+      if (!cacheable) throw new Error('Connect to the internet to load AI memories.');
       const cacheKey = 'req_' + endpoint;
       const cached = StorageManager.get(cacheKey);
       if (cached !== null) {
@@ -78,7 +80,7 @@ const API = {
       }
 
       // Cache successful GET responses automatically
-      if (method === 'GET') {
+      if (cacheable) {
         const cacheKey = 'req_' + endpoint;
         StorageManager.save(cacheKey, data.data);
       }
@@ -86,7 +88,7 @@ const API = {
       return data.data;
     } catch (error) {
       // Network failure on GET: try cache fallback
-      if (method === 'GET' && (error.name === 'TypeError' || !navigator.onLine)) {
+      if (cacheable && (error.name === 'TypeError' || !navigator.onLine)) {
         const cacheKey = 'req_' + endpoint;
         const cached = StorageManager.get(cacheKey);
         if (cached !== null) {

@@ -43,7 +43,8 @@ const AiAssistant = {
       const target = this.targets.get(document.getElementById('aiTarget').value) || null;
       const result = await API.post('/ai/plan', { mode: document.getElementById('aiMode').value,
         target, date: document.getElementById('aiPlanningDate').value, prompt: document.getElementById('aiPrompt').value.trim() });
-      this.render(result); status.textContent = 'Suggestions ready. Nothing has been changed yet.';
+      this.render(result); status.textContent = `Suggestions ready.${result.memory?.saved ? ` AI saved ${result.memory.saved} new ${result.memory.saved === 1 ? 'memory' : 'memories'} for future suggestions.` : ''}`;
+      if (result.memory?.saved && window.AiMemory) await AiMemory.load();
     } catch (error) { status.textContent = error.message; }
     finally { button.disabled = false; button.textContent = 'Generate suggestions'; }
   },
@@ -141,6 +142,7 @@ const AiAssistant = {
     const results = document.getElementById('aiResults'); results.hidden = false; results.replaceChildren();
     const overview = this.element('div', 'ai-panel'); overview.append(this.element('h2', '', 'Your proposed plan'), this.element('p', 'ai-help', plan.summary),
       this.element('p', 'ai-help', `Times shown in ${plan.timezone}. Proposals expire after one hour.`));
+    if (plan.memory) overview.append(this.element('p', 'ai-help', `${plan.memory.used} saved ${plan.memory.used === 1 ? 'memory' : 'memories'} used.${plan.memory.status === 'unavailable' ? ' New memories could not be saved this time.' : ''}`));
     if (plan.weather) overview.append(this.element('p', 'ai-help', plan.weather.status === 'available'
       ? `Weather included: ${plan.weather.location} · ${plan.weather.asOf} (${plan.weather.timezone}).`
       : plan.weather.status === 'unavailable' ? 'Weather is unavailable; this plan uses your commitments.' : 'Save a location in Settings to include weather in new plans.'));

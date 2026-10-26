@@ -53,6 +53,7 @@ const sanitizeUser = (user) => {
   const userObj = user.toObject ? user.toObject() : { ...user };
   delete userObj.passwordHash;
   delete userObj.groqKeyEncrypted;
+  delete userObj.aiMemory;
   return userObj;
 };
 

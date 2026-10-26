@@ -32,6 +32,14 @@ const userSchema = new mongoose.Schema(
         default: false
       }
     },
+    aiMemory: { type: [new mongoose.Schema({
+      content: { type: String, required: true, maxlength: 400 },
+      category: { type: String, enum: ['preferences', 'lifestyle', 'tasks', 'personal'], required: true },
+      source: { type: String, enum: ['user', 'ai'], default: 'user' },
+      createdAt: { type: Date, default: Date.now }, updatedAt: { type: Date, default: Date.now }
+    })], default: [], validate: { validator: entries => entries.length <= 30, message: 'At most 30 memories can be saved.' } },
+    aiMemoryAutoLearn: { type: Boolean, default: true },
+    aiMemoryRevision: { type: Number, default: 0 },
     weatherLocation: {
       type: new mongoose.Schema({
         name: { type: String, required: true, maxlength: 160 },
@@ -73,6 +81,7 @@ const userSchema = new mongoose.Schema(
 userSchema.set('toJSON', { transform(doc, value) {
   delete value.passwordHash;
   delete value.groqKeyEncrypted;
+  delete value.aiMemory;
   return value;
 } });
 module.exports = mongoose.model('User', userSchema);

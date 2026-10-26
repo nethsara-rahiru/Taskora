@@ -9,6 +9,7 @@ function setup(output, options = {}) {
   let requests = 0; let sent;
   const chain = { sort() { return this; }, limit() { return this; }, lean: async () => options.tasks || [] };
   const dependencies = {
+    './ai-memory': require('../services/ai-memory'),
     mongoose: require('mongoose'),
     '../models/User': { findById: () => ({ select: async () => ({ groqKeyEncrypted: 'encrypted', weatherLocation: options.location || null, aiSettings: { toObject: () => ({ ...rules.DEFAULTS, enabled: true }) } }) }) },
     '../models/Task': { find: () => chain },

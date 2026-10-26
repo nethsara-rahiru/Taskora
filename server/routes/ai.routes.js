@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const { protect } = require('../middleware/auth.middleware');
 const ai = require('../services/ai.service');
+const memory = require('../services/ai-memory');
 const router = express.Router();
 router.use(protect);
 router.use((req, res, next) => {
@@ -16,6 +17,11 @@ const handle = fn => async (req, res, next) => {
   try { res.json({ success: true, data: await fn(req) }); }
   catch (error) { if (error.status) res.status(error.status); next(error); }
 };
+router.get('/memory', handle(req => memory.read(req.user._id)));
+router.post('/memory', handle(req => memory.add(req.user._id, req.body)));
+router.put('/memory/settings', handle(req => memory.configure(req.user._id, req.body)));
+router.put('/memory/:id', handle(req => memory.edit(req.user._id, req.params.id, req.body)));
+router.delete('/memory/:id', handle(req => memory.remove(req.user._id, req.params.id)));
 router.get('/settings', handle(req => ai.getSettings(req.user._id)));
 router.put('/settings', handle(req => ai.saveSettings(req.user._id, req.body)));
 router.delete('/settings/key', handle(req => ai.removeKey(req.user._id)));

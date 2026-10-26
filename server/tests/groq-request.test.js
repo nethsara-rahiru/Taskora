@@ -75,3 +75,12 @@ test('dashboard advice uses its own strict schema without requiring actions', ()
     assert.equal(groq.requestBody(model, [], true, true).response_format.json_schema.name, 'connection_check');
   }
 });
+
+test('automatic memory capture has a small separate schema and does not change plan or advice schemas', () => {
+  const request = groq.requestBody(groq.MODELS[0], [], false, false, true);
+  assert.equal(request.response_format.json_schema.name, 'taskora_memory');
+  assert.deepEqual(request.response_format.json_schema.schema.required, ['memories']);
+  assert.deepEqual(request.response_format.json_schema.schema.properties.memories.items.required, ['content', 'category']);
+  assert(request.max_completion_tokens < groq.requestBody(groq.MODELS[0], []).max_completion_tokens);
+  assert.deepEqual(groq.requestBody(groq.MODELS[0], [], false, true).response_format.json_schema.schema.required, ['summary', 'recommendations']);
+});

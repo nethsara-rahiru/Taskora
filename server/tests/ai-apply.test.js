@@ -31,6 +31,7 @@ test('retrying after a saved task but failed plan-result write does not duplicat
     }
   };
   const dependencies = {
+    './ai-memory': require('../services/ai-memory'),
     mongoose,
     './weather.service': { forPlanning: async () => ({ status: 'not_configured' }) },
     '../models/User': { findById: () => ({ select: async () => ({ aiSettings: { toObject: () => rules.DEFAULTS } }) }) },

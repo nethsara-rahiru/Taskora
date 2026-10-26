@@ -26,7 +26,7 @@ const DailyAdvice = {
     const parts = new Intl.DateTimeFormat('en-CA', { timeZone: this.settings.timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
     return ['year', 'month', 'day'].map(type => parts.find(part => part.type === type).value).join('-');
   },
-  cacheKey() { return `daily-advice:v3:${Auth.currentUser._id}:${Auth.currentUser.weatherLocation ? `${Auth.currentUser.weatherLocation.latitude},${Auth.currentUser.weatherLocation.longitude}` : 'none'}`; },
+  cacheKey() { return `daily-advice:v4:${Auth.currentUser._id}:${Auth.currentUser.weatherLocation ? `${Auth.currentUser.weatherLocation.latitude},${Auth.currentUser.weatherLocation.longitude}` : 'none'}:${Auth.currentUser.aiMemoryRevision || 0}`; },
   async generate() {
     const date = this.today();
     this.status.textContent = 'Planning your day around your current commitments…';
