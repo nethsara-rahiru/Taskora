@@ -13,6 +13,7 @@ const App = {
       this.initAiShortcut();
       this.startNotificationPoller();
       this.initDataSync();
+      if (window.DailyAdvice) DailyAdvice.init();
 
       if (typeof window.loadCurrentPageData === 'function') {
         window.loadCurrentPageData();

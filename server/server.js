@@ -47,6 +47,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/timetables', timetableRoutes);
 app.use('/api/ai', require('./routes/ai.routes'));
+app.use('/api/weather', require('./routes/weather.routes'));
 
 // Fallback to index.html for direct SPA routing if needed
 app.get('*', (req, res, next) => {

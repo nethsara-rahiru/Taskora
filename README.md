@@ -53,3 +53,16 @@ Choose **Update a task, event or schedule**, then select an exact item in **Upda
 Selecting a schedule also allows proposals for its own slots. Review current details and proposed fields before applying. Multiple slot proposals for the same schedule can be applied in sequence; external changes still invalidate stale proposals. Schedule and slot creation/deletion are not AI operations.
 
 For automatic targeting the model sees up to three schedules with ten slots each; selecting a schedule includes up to thirty slots, and selecting a particular slot always includes that slot. Task/event selections include the exact selected active record even if it falls outside the usual context limit.
+
+
+## Dashboard daily advice
+
+The dashboard generates daily advice automatically when Groq AI is enabled and configured. It uses the existing task/event/schedule context, timezone and working hours, and suggests focus blocks, breaks and priorities without changing entries. Advice is cached in this browser per account and calendar day in the AI timezone. **Refresh advice** uses the latest commitments; its timestamp shows when it was generated. Disabled or unconfigured AI shows a link to AI settings instead.
+
+## Weather
+
+Open **Weather** in the sidebar. Search for a city and select a result, or choose **Use my location** (requires browser location permission and HTTPS outside localhost). The selected location is remembered in this browser per account. Current conditions, the next 12 hours and a seven-day forecast use the location's timezone; units are Celsius and km/h. The visible page refreshes every 15 minutes, with a manual refresh button. Provider failures retain the previous forecast with a message and its conditions timestamp.
+
+The server needs outbound HTTPS to `api.open-meteo.com` and `geocoding-api.open-meteo.com`. No additional key or database migration is needed. The integration uses Open-Meteo's public non-commercial API; see [Open-Meteo terms](https://open-meteo.com/en/terms). Weather endpoints require a Taskora session, validate locations and cache forecasts for ten minutes. Device coordinates are sent to Open-Meteo through the server only after choosing device location.
+
+Run weather tests with `node --test server/tests/weather.test.js`.

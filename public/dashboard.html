@@ -78,6 +78,15 @@
           </div>
         </div>
 
+        <section class="ai-panel daily-advice" aria-labelledby="dailyAdviceHeading">
+          <div class="day-weather-heading"><div><h2 id="dailyAdviceHeading">✦ Your day, with AI</h2><p class="ai-help">A practical plan around your tasks, events and schedules.</p></div>
+            <button type="button" class="btn btn-primary btn-sm" id="refreshDailyAdvice" disabled>Refresh advice</button>
+          </div>
+          <p id="dailyAdviceStatus" class="ai-help" role="status" aria-live="polite">Loading AI preferences…</p>
+          <div id="dailyAdviceContent"></div>
+          <div class="ai-actions"><a href="/assistant.html?mode=recommend" class="btn btn-secondary btn-sm">Ask the assistant</a><a href="/settings.html#groqSettings" class="ai-help">AI settings</a></div>
+        </section>
+
         <!-- High Priority Focus Alert Card (Dynamic) -->
         <div id="highPrioritySection"
           style="display: none; margin-bottom: 1.5rem; background: color-mix(in srgb, var(--priority-high) 8%, var(--bg-surface)); border: 1px solid color-mix(in srgb, var(--priority-high) 30%, transparent); border-radius: var(--radius-xl); padding: 1.25rem;">
@@ -245,6 +254,7 @@
   <script src="/js/components/task-card.js"></script>
   <script src="/js/event-timing.js"></script>
   <script src="/js/app.js"></script>
+  <script src="/js/daily-advice.js"></script>
   <script>
     let _dashboardData = null;
 
