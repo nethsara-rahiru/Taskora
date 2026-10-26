@@ -705,3 +705,35 @@
 
 .ai-before { font-size: 0.82rem; padding: 0.75rem; margin: 0.75rem 0; border-left: 3px solid var(--primary); background: var(--primary-light); overflow-wrap: anywhere; }
 #aiTarget { min-width: 0; max-width: 100%; text-overflow: ellipsis; }
+
+/* Activity feedback without replacing text or shifting existing page content. */
+.loading-spinner, .is-loading::before, .loading-text::before {
+  content: '';
+  display: inline-block;
+  width: 1em; height: 1em; flex-shrink: 0;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: loadingSpin 0.8s linear infinite;
+}
+.is-loading { position: relative; cursor: progress; }
+.is-loading::before { margin-right: 0.35rem; }
+.btn-icon.is-loading::before, .task-checkbox.is-loading::before, .mobile-fab-btn.is-loading::before {
+  position: absolute; inset: 0; margin: auto; width: 16px; height: 16px;
+}
+.btn-icon.is-loading > svg, .task-checkbox.is-loading > svg, .mobile-fab-btn.is-loading > svg { opacity: 0; }
+.loading-text::before { margin-right: 0.5rem; vertical-align: -0.1em; }
+.loading-placeholder { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.75rem; padding: 2rem 1rem; min-height: 90px; color: var(--text-muted); font-size: 0.875rem; }
+.loading-placeholder .loading-spinner { width: 24px; height: 24px; color: var(--primary); border-width: 3px; }
+.loading-error { color: var(--color-danger); }
+.request-status { position: fixed; left: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); z-index: 1150; display: flex; align-items: center; gap: 0.6rem; padding: 0.65rem 1rem; max-width: calc(100vw - 6rem); background: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-color); border-radius: var(--radius-full); box-shadow: var(--shadow-md); font-size: 0.8rem; pointer-events: none; }
+.request-status[hidden] { display: none; }
+.request-status .loading-spinner { color: var(--primary); }
+button[aria-busy="true"], button[disabled].is-loading { cursor: progress; }
+@keyframes loadingSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner, .is-loading::before, .loading-text::before { animation: none; }
+}
+
+.task-checkbox.is-loading::before { color: var(--primary); }
+.task-checkbox.completed.is-loading::before { color: white; }

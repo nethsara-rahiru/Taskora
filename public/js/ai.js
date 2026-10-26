@@ -1,6 +1,8 @@
 const AiAssistant = {
   targets: new Map(),
   async init() {
+    document.getElementById('generateAiBtn').disabled = true;
+    document.getElementById('aiSetupStatus').classList.add('loading-text');
     const params = new URLSearchParams(location.search);
     const dateInput = document.getElementById('aiPlanningDate');
     const now = new Date();
@@ -18,6 +20,7 @@ const AiAssistant = {
         dateInput.value = `${get('year')}-${get('month')}-${get('day')}`;
       }
     } catch (error) { document.getElementById('aiSetupStatus').textContent = error.message; }
+    finally { document.getElementById('aiSetupStatus').classList.remove('loading-text'); }
     await this.loadTargets();
     document.getElementById('aiTarget').addEventListener('change', event => { if (event.target.value) document.getElementById('aiMode').value = 'update'; });
     document.getElementById('aiMode').addEventListener('change', event => {
@@ -29,7 +32,8 @@ const AiAssistant = {
       document.getElementById('aiPrompt').value = button.dataset.prompt;
       document.getElementById('aiPrompt').focus();
     }));
-    document.getElementById('aiRequestForm').addEventListener('submit', event => this.generate(event));
+    LoadingUI.bindForm(document.getElementById('aiRequestForm'), event => this.generate(event));
+    document.getElementById('generateAiBtn').disabled = false;
   },
   async generate(event) {
     event.preventDefault();
@@ -45,7 +49,8 @@ const AiAssistant = {
   },
   async loadTargets() {
     const select = document.getElementById('aiTarget');
-    const previous = select.value;
+    const previous = select.value; select.disabled = true;
+    const label = document.querySelector('label[for="aiTarget"]'); label.classList.add('loading-text');
     try {
       const [taskData, scheduleData] = await Promise.all([API.get('/tasks'), API.get('/timetables')]);
       select.replaceChildren(this.element('option', '', 'Let AI identify the item from my request')); select.firstElementChild.value = '';
@@ -65,6 +70,7 @@ const AiAssistant = {
       }
       select.append(schedules); if (this.targets.has(previous)) select.value = previous;
     } catch (_) { /* Generation still works without an explicit target. */ }
+    finally { select.disabled = false; label.classList.remove('loading-text'); }
   },
   describe(value) {
     if ('subject' in value) return `${value.subject} · ${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][value.dayOfWeek]} ${value.startTime}–${value.endTime}${value.room ? ` · ${value.room}` : ''}`;
@@ -114,7 +120,7 @@ const AiAssistant = {
     }
     const status = this.element('p', 'ai-help'); status.setAttribute('role', 'status');
     const button = this.element('button', 'btn btn-primary', isSlot ? 'Update weekly slot' : 'Update schedule'); button.type = 'submit'; card.append(status, button);
-    card.addEventListener('submit', async event => {
+    LoadingUI.bindForm(card, async event => {
       event.preventDefault(); button.disabled = true; status.textContent = 'Validating and saving…'; let saved = false;
       try {
         const edits = Object.fromEntries(Object.entries(fields).map(([key, input]) => [key, input.type === 'checkbox' ? input.checked : key === 'dayOfWeek' ? Number(input.value) : input.value]));
@@ -161,7 +167,7 @@ const AiAssistant = {
       const status = this.element('p', 'ai-help'); status.setAttribute('role', 'status');
       const button = this.element('button', 'btn btn-primary', action.operation === 'update' ? `Update ${value.itemType}` : `Add ${value.itemType}`); button.type = 'submit';
       card.append(button, status);
-      card.addEventListener('submit', async event => {
+      LoadingUI.bindForm(card, async event => {
         event.preventDefault(); button.disabled = true; status.textContent = 'Checking availability and saving…';
         let saved = false;
         try {

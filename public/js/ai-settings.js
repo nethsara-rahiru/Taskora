@@ -1,10 +1,13 @@
 const AiSettings = {
   state: null,
   async init() {
+    const saveButton = document.getElementById('saveGroqBtn'); saveButton.disabled = true;
+    const keyStatus = document.getElementById('groqKeyStatus'); keyStatus.classList.add('loading-text');
     try { this.render(await API.get('/ai/settings')); }
     catch (error) { document.getElementById('groqKeyStatus').textContent = error.message; }
+    finally { saveButton.disabled = false; keyStatus.classList.remove('loading-text'); }
     const message = document.getElementById('groqSettingsMessage');
-    document.getElementById('groqSettingsForm').addEventListener('submit', async event => {
+    LoadingUI.bindForm(document.getElementById('groqSettingsForm'), async event => {
       event.preventDefault();
       const button = document.getElementById('saveGroqBtn'); button.disabled = true;
       message.textContent = 'Saving…';
@@ -19,18 +22,18 @@ const AiSettings = {
       } catch (error) { message.textContent = error.message; }
       finally { button.disabled = false; }
     });
-    document.getElementById('testGroqBtn').addEventListener('click', async event => {
+    LoadingUI.bindAction(document.getElementById('testGroqBtn'), async event => {
       const button = event.currentTarget; button.disabled = true; message.textContent = 'Testing the saved key…';
       try { message.textContent = (await API.post('/ai/test', {})).message; }
       catch (error) { message.textContent = error.message; }
       finally { button.disabled = false; }
-    });
-    document.getElementById('removeGroqBtn').addEventListener('click', async event => {
+    }, { manageDisabled: false });
+    LoadingUI.bindAction(document.getElementById('removeGroqBtn'), async event => {
       const button = event.currentTarget; button.disabled = true;
       try { this.render(await API.delete('/ai/settings/key')); document.getElementById('groqApiKey').value = ''; message.textContent = 'Key removed. AI is disabled.'; }
       catch (error) { message.textContent = error.message; }
       finally { button.disabled = !this.state?.configured; }
-    });
+    }, { manageDisabled: false });
   },
   render(data) {
     this.state = data;

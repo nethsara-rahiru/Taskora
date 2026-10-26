@@ -30,6 +30,7 @@ function renderProjectsUI() {
 
     const card = document.createElement('div');
     card.className = 'project-card';
+    card.dataset.loadingKey = `project:${project._id}`;
     card.innerHTML = `
       <div>
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 0.85rem;">
@@ -68,7 +69,7 @@ function renderProjectsUI() {
     `;
 
     card.querySelector('.edit-project-btn').addEventListener('click', () => openProjectModal(project));
-    card.querySelector('.delete-project-btn').addEventListener('click', async () => {
+    LoadingUI.bindAction(card.querySelector('.delete-project-btn'), async () => {
       if (confirm(`Delete project "${project.name}"?`)) {
         await SyncManager.mutate('DELETE', `/projects/${project._id}`, null, {
           invalidates: [
@@ -102,7 +103,7 @@ async function loadCurrentPageData() {
 
 function openProjectModal(projectToEdit = null) {
   const formHtml = `
-    <form id="projectForm">
+    <form id="projectForm" data-loading-key="${projectToEdit ? `project:${projectToEdit._id}` : ''}">
       <div class="form-group">
         <label class="form-label">Project Name *</label>
         <input type="text" id="projNameInput" class="form-control" placeholder="e.g. Work / University / Personal" required value="${projectToEdit ? TaskCard.escapeHtml(projectToEdit.name) : ''}">
@@ -124,7 +125,7 @@ function openProjectModal(projectToEdit = null) {
 
   Modal.open(projectToEdit ? 'Edit Project' : 'Create Project', formHtml);
 
-  document.getElementById('projectForm').addEventListener('submit', async (e) => {
+  LoadingUI.bindForm(document.getElementById('projectForm'), async (e) => {
     e.preventDefault();
     const payload = {
       name: document.getElementById('projNameInput').value.trim(),

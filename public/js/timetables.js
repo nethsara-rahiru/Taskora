@@ -40,7 +40,7 @@ async function initTimetablesPage() {
     const active = cachedTimetables.find(t => t._id === activeTimetableId);
     if (active) openTimetableModal(active);
   });
-  document.getElementById('deleteTimetableBtn')?.addEventListener('click', async () => {
+  LoadingUI.bindAction(document.getElementById('deleteTimetableBtn'), async () => {
     const active = cachedTimetables.find(t => t._id === activeTimetableId);
     if (active && confirm(`Are you sure you want to delete timetable "${active.title}"?`)) {
       await SyncManager.mutate('DELETE', `/timetables/${active._id}`, null, {
@@ -374,6 +374,7 @@ function renderWeeklyGrid(timetablesInput) {
       const isFaded = activeTimetableId !== 'all' && activeTimetableId !== slot.parentTimetableId;
 
       const block = document.createElement('div');
+      block.dataset.loadingKey = `slot:${slot.parentTimetableId}:${slot._id}`;
       block.className = `matrix-slot-block${isFaded ? ' faded' : ''}`;
       block.setAttribute('draggable', slot.isVirtual ? 'false' : 'true');
       block.style.top = `${topPx + 2}px`;
@@ -463,7 +464,7 @@ function renderWeeklyGrid(timetablesInput) {
 
       if (!slot.isVirtual) {
         // Duplicate button listener
-        block.querySelector('.duplicate-slot-btn')?.addEventListener('click', async (e) => {
+        LoadingUI.bindAction(block.querySelector('.duplicate-slot-btn'), async (e) => {
           e.stopPropagation();
           try {
             const duplicatePayload = {
@@ -490,7 +491,7 @@ function renderWeeklyGrid(timetablesInput) {
           openSlotModal(slot);
         });
 
-        block.querySelector('.delete-slot-btn')?.addEventListener('click', async (e) => {
+        LoadingUI.bindAction(block.querySelector('.delete-slot-btn'), async (e) => {
           e.stopPropagation();
           if (confirm(`Delete "${slot.subject}"?`)) {
             await SyncManager.mutate('DELETE', `/timetables/${slot.parentTimetableId}/slots/${slot._id}`, null, {
@@ -611,7 +612,7 @@ window.addEventListener('visibilitychange', () => { if (document.hidden) flushPe
 function openTimetableModal(timetableToEdit = null) {
   let skipRanges = (timetableToEdit?.skipRanges || []).map(range => ({ start: range.start, end: range.end }));
   const formHtml = `
-    <form id="timetableForm">
+    <form id="timetableForm" data-loading-key="${timetableToEdit ? `timetable:${timetableToEdit._id}` : ''}">
       <div class="form-group">
         <label class="form-label">Schedule Title *</label>
         <input type="text" id="ttTitleInput" class="form-control" placeholder="e.g. Work Schedule / Weekly Routine / Gym Plan" required value="${timetableToEdit ? TaskCard.escapeHtml(timetableToEdit.title) : ''}">
@@ -704,7 +705,7 @@ function openTimetableModal(timetableToEdit = null) {
     renderRanges(); input.value = '';
   });
 
-  document.getElementById('timetableForm').addEventListener('submit', async (e) => {
+  LoadingUI.bindForm(document.getElementById('timetableForm'), async (e) => {
     e.preventDefault();
     const payload = {
       title: document.getElementById('ttTitleInput').value.trim(),
@@ -759,7 +760,7 @@ function openSlotModal(slotToEdit = null) {
   ` : '';
 
   const formHtml = `
-    <form id="slotForm">
+    <form id="slotForm" data-loading-key="${slotToEdit ? `slot:${slotToEdit.parentTimetableId}:${slotToEdit._id}` : ''}">
       ${ttSelectorHtml}
 
       <div class="form-group">
@@ -814,7 +815,7 @@ function openSlotModal(slotToEdit = null) {
 
   Modal.open(slotToEdit ? 'Edit Slot' : 'Add Slot', formHtml);
 
-  document.getElementById('slotForm').addEventListener('submit', async (e) => {
+  LoadingUI.bindForm(document.getElementById('slotForm'), async (e) => {
     e.preventDefault();
 
     const selectedTtId = document.getElementById('slotTimetableSelect')

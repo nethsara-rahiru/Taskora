@@ -79,12 +79,25 @@ const SyncManager = {
       try { callback(cached, { fromCache: true }); } catch (e) {}
     }
 
+    const region = cached === null && window.LoadingUI ? LoadingUI.regionFor(cacheKey) : null;
+    const stopLoading = region ? LoadingUI.startRegion(region) : () => {};
     // 2. Always fetch fresh if cache is stale (or no cache)
     if (cached === null || StorageManager.isStale(cacheKey, ttlMs)) {
       const fresh = await this._fetchAndCache(cacheKey, endpoint);
       if (fresh !== undefined && fresh !== null) {
         try { callback(fresh, { fromCache: false }); } catch (e) {}
       }
+    }
+
+    stopLoading();
+    if (cached === null && region && StorageManager.get(cacheKey) === null) {
+      const retry = async () => {
+        const stop = LoadingUI.startRegion(region);
+        const fresh = await this._fetchAndCache(cacheKey, endpoint);
+        stop();
+        if (fresh === undefined) LoadingUI.regionError(region, retry);
+      };
+      LoadingUI.regionError(region, retry);
     }
 
     // 3. Subscribe so future background polls also update this callback

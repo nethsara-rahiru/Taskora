@@ -236,6 +236,7 @@
 
   <script src="/js/storage.js"></script>
   <script src="/js/sync.js"></script>
+  <script src="/js/loading-ui.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/auth.js"></script>
   <script src="/js/components/notification.js"></script>
@@ -308,6 +309,7 @@
       const isStruck = isCompleted || (isPast && item._type === 'slot');
 
       const row = document.createElement('div');
+      if (isTask) row.dataset.loadingKey = `task:${item._id}`;
       row.style.cssText = `
         display: flex; align-items: center; gap: 0.55rem;
         padding: 0.45rem 0;
@@ -358,7 +360,7 @@
       if (isTask) {
         const btn = row.querySelector('.focus-complete-btn');
         if (btn) {
-          btn.addEventListener('click', async (e) => {
+          LoadingUI.bindAction(btn, async (e) => {
             e.stopPropagation();
             const endpoint = isCompleted ? `/tasks/${item._id}/uncomplete` : `/tasks/${item._id}/complete`;
             try {
@@ -599,6 +601,7 @@
         } else {
           recentlyCompleted.forEach(t => {
             const div = document.createElement('div');
+            div.dataset.loadingKey = `task:${t._id}`;
             div.style.cssText = 'padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.83rem; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;';
             div.innerHTML = `
               <div style="display:flex; align-items:center; gap:0.4rem; font-weight:600; min-width:0; flex:1; overflow:hidden;">
@@ -620,7 +623,7 @@
 
             const undoBtn = div.querySelector('.undo-task-btn');
             if (undoBtn) {
-              undoBtn.addEventListener('click', async () => {
+              LoadingUI.bindAction(undoBtn, async () => {
                 try {
                   await SyncManager.mutate('POST', `/tasks/${t._id}/uncomplete`, null, {
                     invalidates: [

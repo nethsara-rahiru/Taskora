@@ -124,14 +124,14 @@ const App = {
       fab.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
       document.body.appendChild(fab);
 
-      fab.addEventListener('click', () => action.click());
+      LoadingUI.bindAction(fab, () => action.id === 'quickAddTaskBtn' ? this.openTaskModal() : action.click(), { label: 'Opening form' });
     }
   },
 
   initQuickAddBtn() {
     const quickAddBtn = document.getElementById('quickAddTaskBtn');
     if (quickAddBtn) {
-      quickAddBtn.addEventListener('click', () => this.openTaskModal());
+      LoadingUI.bindAction(quickAddBtn, () => this.openTaskModal(), { label: 'Opening form' });
     }
   },
 
@@ -153,7 +153,7 @@ const App = {
       : (/^\d{4}-\d{2}-\d{2}$/.test(defaultDueDate) ? defaultDueDate : '');
 
     const formHtml = `
-      <form id="taskForm">
+      <form id="taskForm" data-loading-key="${taskToEdit ? `task:${taskToEdit._id}` : ''}">
         <div class="form-group" style="margin-bottom: 1.25rem;">
           <label class="form-label" style="font-weight: 700;">Type of Entry</label>
           <div style="display: flex; gap: 0.5rem; background: var(--bg-input); padding: 0.3rem; border-radius: var(--radius-md);">
@@ -310,7 +310,7 @@ const App = {
       });
     });
 
-    document.getElementById('taskForm').addEventListener('submit', async (e) => {
+    LoadingUI.bindForm(document.getElementById('taskForm'), async (e) => {
       e.preventDefault();
       const selectedType = document.querySelector('input[name="itemTypeRadio"]:checked')?.value || 'task';
       const timeVal = document.getElementById('taskDueTimeInput').value || null;

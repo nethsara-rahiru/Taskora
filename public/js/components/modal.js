@@ -18,7 +18,7 @@ const Modal = {
 
       document.getElementById('modalCloseBtn').addEventListener('click', () => this.close());
       this.overlay.addEventListener('click', (e) => {
-        if (e.target === this.overlay) this.close();
+        if (e.target === this.overlay && !this.overlay.querySelector('form[aria-busy="true"]')) this.close();
       });
     }
   },

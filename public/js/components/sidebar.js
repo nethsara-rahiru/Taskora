@@ -72,7 +72,7 @@ const Sidebar = {
     const sidebarElem = document.querySelector('.sidebar');
     if (sidebarElem) {
       sidebarElem.innerHTML = sidebarHtml;
-      document.getElementById('logoutBtn')?.addEventListener('click', () => Auth.logout());
+      LoadingUI.bindAction(document.getElementById('logoutBtn'), () => Auth.logout(), { label: 'Signing out' });
       document.getElementById('mobileSidebarCloseBtn')?.addEventListener('click', () => this.closeMobileDrawer());
     }
 

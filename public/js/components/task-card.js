@@ -4,6 +4,7 @@ const TaskCard = {
     const isEvent = task.itemType === 'event';
     card.className = `task-card ${task.status === 'completed' ? 'completed' : ''} ${isEvent ? 'event-card' : ''}`;
     card.dataset.id = task._id;
+    card.dataset.loadingKey = `task:${task._id}`;
 
     const formattedDueDate = task.dueDate
       ? new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
@@ -83,18 +84,18 @@ const TaskCard = {
       </div>
     `;
 
-    card.querySelector('.task-checkbox').addEventListener('click', () => {
-      if (onToggleComplete) onToggleComplete(task._id, task.status !== 'completed');
+    LoadingUI.bindAction(card.querySelector('.task-checkbox'), () => {
+      if (onToggleComplete) return onToggleComplete(task._id, task.status !== 'completed');
     });
 
-    card.querySelector('.edit-task-btn').addEventListener('click', (e) => {
+    LoadingUI.bindAction(card.querySelector('.edit-task-btn'), (e) => {
       e.stopPropagation();
-      if (onEdit) onEdit(task);
+      if (onEdit) return onEdit(task);
     });
 
-    card.querySelector('.delete-task-btn').addEventListener('click', (e) => {
+    LoadingUI.bindAction(card.querySelector('.delete-task-btn'), (e) => {
       e.stopPropagation();
-      if (onDelete) onDelete(task._id);
+      if (onDelete) return onDelete(task._id);
     });
 
     return card;

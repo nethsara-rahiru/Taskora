@@ -17,7 +17,7 @@ async function loadCurrentPageData() {
 
 function setupFormListeners() {
   // Update Profile
-  document.getElementById('profileForm')?.addEventListener('submit', async (e) => {
+  LoadingUI.bindForm(document.getElementById('profileForm'), async (e) => {
     e.preventDefault();
     try {
       const name = document.getElementById('settingsName').value.trim();
@@ -31,7 +31,7 @@ function setupFormListeners() {
   });
 
   // Update WhatsApp
-  document.getElementById('whatsappForm')?.addEventListener('submit', async (e) => {
+  LoadingUI.bindForm(document.getElementById('whatsappForm'), async (e) => {
     e.preventDefault();
     try {
       const phoneNumber = document.getElementById('settingsPhone').value.trim();
@@ -44,7 +44,7 @@ function setupFormListeners() {
   });
 
   // Test WhatsApp Message
-  document.getElementById('testWaBtn')?.addEventListener('click', async () => {
+  LoadingUI.bindAction(document.getElementById('testWaBtn'), async () => {
     try {
       const phoneNumber = document.getElementById('settingsPhone').value.trim();
       const res = await API.post('/whatsapp/test', { phoneNumber });
@@ -61,7 +61,7 @@ function setupFormListeners() {
   });
 
   // Change Password
-  document.getElementById('passwordForm')?.addEventListener('submit', async (e) => {
+  LoadingUI.bindForm(document.getElementById('passwordForm'), async (e) => {
     e.preventDefault();
     const currentPassword = document.getElementById('currentPass').value;
     const newPassword = document.getElementById('newPass').value;
