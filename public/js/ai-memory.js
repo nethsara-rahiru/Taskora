@@ -21,7 +21,7 @@ const AiMemory = {
   },
   accept(data) {
     this.data = data; this.toggle.checked = data.autoLearn;
-    if (Auth.currentUser) { Auth.currentUser.aiMemoryRevision = data.revision; Auth.currentUser.aiMemory = data.memories; Auth.currentUser.aiMemoryAutoLearn = data.autoLearn; }
+    if (Auth.currentUser) { Auth.currentUser.aiMemoryRevision = data.revision; Auth.currentUser.aiMemory = data.memories; Auth.currentUser.aiMemoryAutoLearn = data.autoLearn; StorageManager.save('user', Auth.currentUser); }
     document.getElementById('aiMemoryCount').textContent = `${data.memories.length}/${data.limit}`;
     this.list.replaceChildren();
     if (!data.memories.length) this.list.append(this.element('p', 'ai-help', 'No memories yet. Add something you would like AI to keep in mind.'));
@@ -44,10 +44,10 @@ const AiMemory = {
     this.editing = null; this.content.value = ''; this.category.value = 'preferences';
     this.save.textContent = 'Add memory'; this.cancel.hidden = true; this.controls();
   },
-  async load() {
+  async load(options = {}) {
     if (this.busy) return;
     this.busy = true; this.controls(); this.status.classList.add('loading-text'); this.status.textContent = 'Loading memories…';
-    try { this.accept(await API.get('/ai/memory')); this.status.textContent = 'Saved memories are used in new AI suggestions.'; }
+    try { this.accept(await (options.fresh ? API.refresh('/ai/memory') : API.getCached('/ai/memory', fresh => this.accept(fresh)))); this.status.textContent = 'Saved memories are used in new AI suggestions.'; }
     catch (error) { this.status.textContent = `${error.message} Use Refresh memories to retry.`; }
     finally { this.busy = false; this.status.classList.remove('loading-text'); this.controls(); }
   },

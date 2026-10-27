@@ -25,7 +25,7 @@ function setupFormListeners() {
       const email = document.getElementById('settingsEmail').value.trim();
       await API.put('/user', { name, email });
       Notifications.show('Profile updated successfully!', 'success');
-      Auth.getCurrentUser().then(u => App.initHeaderUser(u));
+      Auth.getCurrentUser({ fresh: true }).then(u => App.initHeaderUser(u));
     } catch (err) {
       Notifications.show(err.message, 'error');
     }

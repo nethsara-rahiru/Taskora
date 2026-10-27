@@ -5,6 +5,7 @@
 const SyncManager = {
   // Map of cacheKey -> Set of subscriber callbacks
   _subscribers: {},
+  _loads: new Map(),
 
   // Background poll interval handle
   _pollInterval: null,
@@ -40,9 +41,11 @@ const SyncManager = {
   _notify(cacheKey, data) {
     const subs = this._subscribers[cacheKey];
     if (subs) {
+      const scroll = window.document?.querySelector('.main-content'), top = scroll?.scrollTop;
       subs.forEach(cb => {
         try { cb(data); } catch (e) {}
       });
+      if (scroll) scroll.scrollTop = top;
     }
   },
 
@@ -51,11 +54,14 @@ const SyncManager = {
    */
   async _fetchAndCache(cacheKey, endpoint) {
     if (this._inFlight[cacheKey]) return this._inFlight[cacheKey];
+    const owner = StorageManager.owner;
     const request = (async () => {
       try {
         const data = await API.get(endpoint);
+        if (owner !== StorageManager.owner) return;
+        const previous = StorageManager.get ? StorageManager.get(cacheKey) : null;
         StorageManager.save(cacheKey, data);
-        this._notify(cacheKey, data);
+        if (JSON.stringify(previous) !== JSON.stringify(data)) this._notify(cacheKey, data);
         return data;
       } catch (err) {
         console.warn('[SyncManager] Background fetch failed for', cacheKey, err.message);
@@ -73,37 +79,26 @@ const SyncManager = {
    * Stale-While-Revalidate: Instantly return cached data, then fetch fresh in background.
    */
   async load(cacheKey, endpoint, callback, ttlMs = this.DEFAULT_TTL_MS) {
-    // 1. Serve from cache immediately if available
     const cached = StorageManager.get(cacheKey);
+    const deliver = data => { try { callback(data, { fromCache: false }); } catch (_) {} };
+    // Subscribe before refreshing so a cached view cannot miss a fast response.
+    this._loads.get(cacheKey)?.();
+    this._loads.set(cacheKey, this.subscribe(cacheKey, deliver));
     if (cached !== null) {
-      try { callback(cached, { fromCache: true }); } catch (e) {}
+      try { callback(cached, { fromCache: true }); } catch (_) {}
+      // Do not await the network or replace cached content with loading placeholders.
+      this._fetchAndCache(cacheKey, endpoint);
+      return;
     }
-
-    const region = cached === null && window.LoadingUI ? LoadingUI.regionFor(cacheKey) : null;
-    const stopLoading = region ? LoadingUI.startRegion(region) : () => {};
-    // 2. Always fetch fresh if cache is stale (or no cache)
-    if (cached === null || StorageManager.isStale(cacheKey, ttlMs)) {
-      const fresh = await this._fetchAndCache(cacheKey, endpoint);
-      if (fresh !== undefined && fresh !== null) {
-        try { callback(fresh, { fromCache: false }); } catch (e) {}
-      }
-    }
-
-    stopLoading();
-    if (cached === null && region && StorageManager.get(cacheKey) === null) {
-      const retry = async () => {
-        const stop = LoadingUI.startRegion(region);
-        const fresh = await this._fetchAndCache(cacheKey, endpoint);
-        stop();
-        if (fresh === undefined) LoadingUI.regionError(region, retry);
-      };
-      LoadingUI.regionError(region, retry);
-    }
-
-    // 3. Subscribe so future background polls also update this callback
-    this.subscribe(cacheKey, data => {
-      try { callback(data, { fromCache: false }); } catch (e) {}
-    });
+    const region = window.LoadingUI ? LoadingUI.regionFor(cacheKey) : null;
+    const stop = region ? LoadingUI.startRegion(region) : () => {};
+    const retry = async () => {
+      const finish = region ? LoadingUI.startRegion(region) : () => {};
+      const fresh = await this._fetchAndCache(cacheKey, endpoint); finish();
+      if (fresh === undefined && region) LoadingUI.regionError(region, retry);
+    };
+    const fresh = await this._fetchAndCache(cacheKey, endpoint); stop();
+    if (fresh === undefined && region) LoadingUI.regionError(region, retry);
   },
 
   /**
@@ -113,7 +108,6 @@ const SyncManager = {
     // A request started before the mutation may still contain the old status.
     // Let it settle, then fetch the state after the mutation instead of skipping refresh.
     if (this._inFlight[cacheKey]) await this._inFlight[cacheKey];
-    StorageManager.remove(cacheKey);
     await this._fetchAndCache(cacheKey, endpoint);
   },
 
@@ -121,7 +115,7 @@ const SyncManager = {
    * Instantly revalidate all registered polling keys (used on mobile app resume/focus/online)
    */
   async forceRefreshAll() {
-    if (!navigator.onLine || !this._polledKeys) return;
+    if (!navigator.onLine || document.visibilityState === 'hidden' || !this._polledKeys) return;
     for (const { cacheKey, endpoint } of this._polledKeys) {
       await this._fetchAndCache(cacheKey, endpoint);
     }

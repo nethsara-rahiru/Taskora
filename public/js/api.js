@@ -40,7 +40,9 @@ const API = {
 
   async request(endpoint, options = {}) {
     const method = options.method || 'GET';
-    const cacheable = method === 'GET' && !endpoint.startsWith('/ai/memory');
+    const cacheable = method === 'GET' && endpoint !== '/auth/me' && !!StorageManager.owner;
+    const owner = StorageManager.owner;
+    const epoch = this.epoch || 0;
     const config = {
       method,
       headers: {
@@ -56,7 +58,7 @@ const API = {
 
     // If offline and it's a GET, return from StorageManager cache as fallback
     if (!navigator.onLine && method === 'GET') {
-      if (!cacheable) throw new Error('Connect to the internet to load AI memories.');
+      if (!cacheable) throw new Error('Connect to the internet to verify your session.');
       const cacheKey = 'req_' + endpoint;
       const cached = StorageManager.get(cacheKey);
       if (cached !== null) {
@@ -80,15 +82,25 @@ const API = {
       }
 
       // Cache successful GET responses automatically
-      if (cacheable) {
+      if (cacheable && owner === StorageManager.owner && epoch === (this.epoch || 0)) {
         const cacheKey = 'req_' + endpoint;
         StorageManager.save(cacheKey, data.data);
       }
 
+      if (method !== 'GET' && owner === StorageManager.owner) {
+        this.epoch = (this.epoch || 0) + 1;
+        if (endpoint.startsWith('/ai/memory')) StorageManager.save('req_/ai/memory', data.data);
+        if (endpoint.startsWith('/ai/settings')) StorageManager.save('req_/ai/settings', data.data);
+        if (window.Auth && Auth.currentUser) {
+          if (endpoint === '/user/location') Auth.currentUser.weatherLocation = data.data.location;
+          if (endpoint === '/user' && data.data.user) Auth.currentUser = data.data.user;
+          StorageManager.save('user', Auth.currentUser);
+        }
+      }
       return data.data;
     } catch (error) {
       // Network failure on GET: try cache fallback
-      if (cacheable && (error.name === 'TypeError' || !navigator.onLine)) {
+      if (cacheable && owner === StorageManager.owner && (error.name === 'TypeError' || !navigator.onLine)) {
         const cacheKey = 'req_' + endpoint;
         const cached = StorageManager.get(cacheKey);
         if (cached !== null) {
@@ -96,11 +108,30 @@ const API = {
           return cached;
         }
       }
+      if (error.status === 401 && !endpoint.startsWith('/auth/') && window.Auth) Auth.expire();
       console.error(`[API Error] ${endpoint}:`, error.message);
       throw error;
     } finally {
       SyncIndicator.finish(requestActivity);
     }
+  },
+
+  reads: new Map(),
+  refresh(endpoint) {
+    const previous = this.reads.get(endpoint), epoch = this.epoch || 0;
+    if (previous && previous.cacheEpoch === epoch && previous.cacheOwner === StorageManager.owner) return previous;
+    const request = this.get(endpoint).finally(() => { if (this.reads.get(endpoint) === request) this.reads.delete(endpoint); });
+    request.cacheEpoch = epoch; request.cacheOwner = StorageManager.owner;
+    this.reads.set(endpoint, request); return request;
+  },
+  async getCached(endpoint, onFresh) {
+    const cached = StorageManager.get('req_' + endpoint), epoch = this.epoch || 0;
+    const request = this.refresh(endpoint);
+    if (cached !== null) {
+      request.then(data => { if (onFresh && epoch === (this.epoch || 0) && JSON.stringify(data) !== JSON.stringify(cached)) onFresh(data); }).catch(() => {});
+      return cached;
+    }
+    return request;
   },
 
   get(endpoint) {

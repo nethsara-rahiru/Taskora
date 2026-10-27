@@ -56,10 +56,11 @@ const WeatherPage = {
     if (!this.location || this.loading) return false;
     this.loading = true; this.lastAttempt = Date.now();
     const location = this.location;
-    this.status.textContent = 'Updating weather…'; this.status.classList.add('loading-text');
+    const cached = StorageManager.get(`req_/weather/forecast?latitude=${encodeURIComponent(location.latitude)}&longitude=${encodeURIComponent(location.longitude)}`);
+    if (!cached) { this.status.textContent = 'Updating weather…'; this.status.classList.add('loading-text'); }
     const panel = document.getElementById('weatherForecastPanel'); panel.setAttribute('aria-busy', 'true');
     try {
-      const forecast = await API.get(`/weather/forecast?latitude=${encodeURIComponent(location.latitude)}&longitude=${encodeURIComponent(location.longitude)}`);
+      const forecast = await API.getCached(`/weather/forecast?latitude=${encodeURIComponent(location.latitude)}&longitude=${encodeURIComponent(location.longitude)}`, fresh => { this.render(fresh, location); });
       this.render(forecast, location);
       this.status.textContent = navigator.onLine ? 'Weather updated.' : 'Offline — showing previously downloaded weather. Check its update time.';
       return true;

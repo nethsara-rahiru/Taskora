@@ -9,7 +9,7 @@ const DailyAdvice = {
     this.status.classList.add('loading-text');
     LoadingUI.bindAction(this.button, () => this.generate());
     try {
-      this.settings = await API.get('/ai/settings');
+      this.settings = await API.getCached('/ai/settings');
       if (!this.settings.configured || !this.settings.enabled) {
         this.status.textContent = 'Enable Groq AI and add your key in AI settings for daily suggestions.';
         return;

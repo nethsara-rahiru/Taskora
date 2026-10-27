@@ -10,7 +10,7 @@ const AiAssistant = {
       `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     if (['quick_add', 'schedule', 'recommend', 'update'].includes(params.get('mode'))) document.getElementById('aiMode').value = params.get('mode');
     try {
-      const settings = await API.get('/ai/settings');
+      const settings = await API.getCached('/ai/settings');
       document.getElementById('aiSetupStatus').textContent = settings.configured && settings.enabled
         ? `Ready · ${settings.timezone} · Working hours ${settings.workdayStart}–${settings.workdayEnd} · ${settings.defaultDuration} min per task`
         : 'Add your Groq key and enable AI in Settings to get started.';
@@ -44,7 +44,7 @@ const AiAssistant = {
       const result = await API.post('/ai/plan', { mode: document.getElementById('aiMode').value,
         target, date: document.getElementById('aiPlanningDate').value, prompt: document.getElementById('aiPrompt').value.trim() });
       this.render(result); status.textContent = `Suggestions ready.${result.memory?.saved ? ` AI saved ${result.memory.saved} new ${result.memory.saved === 1 ? 'memory' : 'memories'} for future suggestions.` : ''}`;
-      if (result.memory?.saved && window.AiMemory) await AiMemory.load();
+      if (result.memory?.saved && window.AiMemory) await AiMemory.load({ fresh: true });
     } catch (error) { status.textContent = error.message; }
     finally { button.disabled = false; button.textContent = 'Generate suggestions'; }
   },
@@ -53,7 +53,7 @@ const AiAssistant = {
     const previous = select.value; select.disabled = true;
     const label = document.querySelector('label[for="aiTarget"]'); label.classList.add('loading-text');
     try {
-      const [taskData, scheduleData] = await Promise.all([API.get('/tasks'), API.get('/timetables')]);
+      const [taskData, scheduleData] = await Promise.all([API.getCached('/tasks'), API.getCached('/timetables')]);
       select.replaceChildren(this.element('option', '', 'Let AI identify the item from my request')); select.firstElementChild.value = '';
       this.targets.clear();
       const add = (group, text, target) => {

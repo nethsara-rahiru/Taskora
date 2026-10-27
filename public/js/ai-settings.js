@@ -3,7 +3,7 @@ const AiSettings = {
   async init() {
     const saveButton = document.getElementById('saveGroqBtn'); saveButton.disabled = true;
     const keyStatus = document.getElementById('groqKeyStatus'); keyStatus.classList.add('loading-text');
-    try { this.render(await API.get('/ai/settings')); }
+    try { this.render(await API.getCached('/ai/settings')); }
     catch (error) { document.getElementById('groqKeyStatus').textContent = error.message; }
     finally { saveButton.disabled = false; keyStatus.classList.remove('loading-text'); }
     const message = document.getElementById('groqSettingsMessage');

@@ -4,22 +4,16 @@ const App = {
     
     const user = await Auth.requireAuth();
     if (user) {
-      Sidebar.render();
-      this.initHeaderUser(user);
-      this.initMobileMenu();
-      this.initQuickAddBtn();
-      this.initThemeToggle();
-      this.initMobileFab();
-      this.initAiShortcut();
-      this.startNotificationPoller();
-      this.initDataSync();
-      if (window.AiMemory) AiMemory.init();
-      if (window.DailyAdvice) DailyAdvice.init();
-
-      if (typeof window.loadCurrentPageData === 'function') {
-        window.loadCurrentPageData();
-      }
+      this.startNotificationPoller(); this.initDataSync();
+      await SiteNavigation.init();
     }
+  },
+
+  initPage(user) {
+    Sidebar.render(); this.initHeaderUser(user); this.initMobileMenu(); this.initQuickAddBtn();
+    this.applySavedTheme(); this.initThemeToggle(); this.initMobileFab(); this.initAiShortcut();
+    if (window.AiMemory) AiMemory.init();
+    if (window.DailyAdvice) DailyAdvice.init();
   },
 
   initDataSync() {
@@ -32,6 +26,15 @@ const App = {
     ]);
     // Register online/offline + visibility listeners
     SyncManager.initNetworkListeners();
+    this.profileTimer = setInterval(() => {
+      if (document.visibilityState === 'visible' && navigator.onLine) Auth.getCurrentUser({ fresh: true }).then(user => user ? this.initHeaderUser(user) : Auth.expire());
+    }, 60000);
+    const owner = StorageManager.owner;
+    Promise.allSettled(SyncManager._polledKeys.map(item => SyncManager._fetchAndCache(item.cacheKey, item.endpoint)));
+    API.getCached('/ai/settings').catch(() => {});
+    API.getCached('/ai/memory').catch(() => {});
+    const location = Auth.currentUser.weatherLocation;
+    if (location && owner === StorageManager.owner) API.getCached(`/weather/forecast?latitude=${encodeURIComponent(location.latitude)}&longitude=${encodeURIComponent(location.longitude)}`).catch(() => {});
 
     // Show offline/online banner
     window.addEventListener('offline', () => {
@@ -138,13 +141,16 @@ const App = {
   },
 
   async openTaskModal(taskToEdit = null, defaultDueDate = '') {
+    const viewScope = window.SiteNavigation?.active;
     // Load projects from cache first, then fall back to API
     let projects = [];
     const cachedProjects = StorageManager.get('projects') || StorageManager.get('req_/projects');
     if (cachedProjects) {
       projects = cachedProjects.projects || [];
     } else {
-      const projectsData = await API.get('/projects').catch(() => ({ projects: [] }));
+      const pageScope = window.SiteNavigation?.active;
+      const projectsData = await API.getCached('/projects').catch(() => ({ projects: [] }));
+      if (pageScope && !pageScope.active) return;
       projects = projectsData.projects || [];
     }
 
@@ -349,10 +355,12 @@ const App = {
           await SyncManager.mutate('POST', '/tasks', payload, { invalidates });
           Notifications.show(`${selectedType === 'event' ? 'Event' : 'Task'} created successfully!`, 'success');
         }
+        if (viewScope && !viewScope.active) return;
         Modal.close();
         if (window.loadCurrentPageData) window.loadCurrentPageData();
       } catch (err) {
-        document.getElementById('taskFormError').textContent = err.message;
+        if (!viewScope || viewScope.active) document.getElementById('taskFormError').textContent = err.message;
+        else Notifications.show(err.message, 'error');
       }
     });
   },
