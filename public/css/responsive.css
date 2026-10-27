@@ -273,7 +273,6 @@
 }
 
 @media (max-width: 768px) {
-  .main-content,
   .sidebar,
   .sidebar-backdrop,
   .modal-overlay {
@@ -309,6 +308,10 @@
   }
 
   .page-container {
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  body:has(.mobile-fab-btn) .page-container {
     padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
   }
 

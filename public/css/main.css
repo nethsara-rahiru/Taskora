@@ -168,10 +168,22 @@ input, select, textarea {
   background: rgba(148, 163, 184, 0.5);
 }
 
+/* App pages have one scroll surface, even as mobile browser bars resize. */
+html:has(.app-container), body:has(> .app-container) {
+  overflow: hidden;
+}
+body:has(> .app-container) {
+  height: 100vh;
+  height: 100dvh;
+}
+
 /* Layout Framework */
 .app-container {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
   width: 100%;
   background-color: var(--bg-main);
 }
@@ -181,8 +193,10 @@ input, select, textarea {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  height: 100vh;
+  height: 100%;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   background-color: var(--bg-main);
 }
 
