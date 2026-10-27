@@ -39,7 +39,7 @@ async function forecast(latitude, longitude) {
   const url = new URL('https://api.open-meteo.com/v1/forecast');
   url.search = new URLSearchParams({ latitude: lat, longitude: lon, timezone: 'auto', forecast_days: '7',
     current: 'temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m',
-    hourly: 'temperature_2m,precipitation_probability,weather_code',
+    hourly: 'temperature_2m,precipitation_probability,weather_code,is_day',
     daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset' });
   const data = await cached(`forecast:${lat}:${lon}`, url, 10 * 60000, value => !!value.current && Array.isArray(value.daily?.time) && Array.isArray(value.hourly?.time));
   return { ...data, source: 'Open-Meteo' };

@@ -82,3 +82,10 @@ Open **AI Assistant → AI Memory** to add, edit or delete notes about preferenc
 Notes are included in Groq requests as contextual data. The current request and user-entered notes take priority over older AI-added notes; memories do not grant permission to alter tasks. Memory API routes require an authenticated account, enforce limits and validate contents. Optimistic revision checks preserve concurrent manual edits and prevent learning from restoring notes removed while generation was in progress. Raw notes are excluded from general profile responses and the browser's generic API cache; editing memory requires a connection. Saved memories are embedded in the user document, so existing accounts need no migration.
 
 Run memory tests with `node --test server/tests/ai-memory.test.js server/tests/ai-advice.test.js server/tests/groq-request.test.js`.
+
+
+## Weather timeline
+
+The Weather page includes an interactive 24-hour condition graph. Time runs along the horizontal axis in the forecast location's timezone, with dates shown when the timeline crosses midnight. The center line is normal sunny weather, hotter clear daytime hours rise into red, and clouds/rain fall into blue. Hover or tap the graph, or use the **Explore an hour** slider (including arrow keys), to read actual conditions, temperature and rain chance. Small screens can scroll the graph horizontally.
+
+This is an illustrative relative condition scale, not a physical weather measurement or a temperature axis. Clear daytime hours at or below 28°C sit at zero; heat above 28°C raises the line, while cloud and precipitation codes lower it. Nighttime clear skies stay neutral, and missing/unknown condition codes leave gaps rather than invented values. The graph uses up to 25 hourly samples from the current hour, covering 24 hours. Run its tests with `node --test server/tests/weather-chart.test.js`.

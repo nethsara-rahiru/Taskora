@@ -56,6 +56,11 @@
         <section class="ai-panel" id="weatherForecastPanel" aria-label="Weather forecast" hidden>
           <div class="day-weather-heading"><div><h2 id="weatherLocationName"></h2><p id="weatherUpdated" class="ai-help"></p></div><button type="button" class="btn btn-secondary btn-sm" id="weatherRefresh">Refresh weather</button></div>
           <div id="weatherCurrent" class="weather-current"></div>
+          <section class="weather-chart-section" aria-labelledby="weatherChartHeading">
+            <h3 id="weatherChartHeading">Weather timeline · next 24 hours</h3>
+            <p class="ai-help">Hot, sunny hours rise into red; clouds and rain dip into blue. The center line represents normal sunny conditions. This is a relative condition scale, not a temperature scale.</p>
+            <div id="weatherConditionGraph"></div>
+          </section>
           <h3>Next 12 hours</h3><div id="weatherHourly" class="weather-hourly"></div>
           <h3>7-day forecast</h3><div id="weatherDaily" class="weather-days"></div>
           <p class="ai-help">Forecasts can change. Temperatures in °C, wind in km/h, rain chance in %. Updates every 15 minutes while this page is visible.</p>
@@ -75,6 +80,7 @@
   <script src="/js/components/sidebar.js"></script>
   <script src="/js/event-timing.js"></script>
   <script src="/js/app.js"></script>
+  <script src="/js/weather-chart.js"></script>
   <script src="/js/weather.js"></script>
 </body>
 </html>

@@ -98,6 +98,7 @@ const WeatherPage = {
       const item = this.element('div', 'weather-metric'); item.append(this.element('span', 'ai-help', label), this.element('strong', '', value)); metrics.append(item);
     }
     overview.append(metrics);
+    WeatherChart.render(document.getElementById('weatherConditionGraph'), data, code => this.condition(code));
     const hourly = document.getElementById('weatherHourly'); hourly.replaceChildren();
     data.hourly.time.map((time, index) => ({ time, index })).filter(item => item.time >= current.time).slice(0, 12).forEach(({time, index}) => {
       const card = this.element('div', 'weather-hour');

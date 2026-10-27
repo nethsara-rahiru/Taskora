@@ -769,3 +769,18 @@ button[aria-busy="true"], button[disabled].is-loading { cursor: progress; }
 .memory-content { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
 #aiMemoryCancel[hidden] { display: none; }
 #aiMemoryForm { margin: 1rem 0; }
+
+/* Qualitative hourly weather graph */
+.weather-chart-section { margin: 0.5rem 0 1.5rem; min-width: 0; }
+.weather-chart-scroll { width: 100%; max-width: 100%; overflow-x: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-surface); }
+.weather-condition-chart { display: block; width: 100%; min-width: 720px; height: auto; touch-action: pan-x pan-y; }
+.weather-chart-axis { fill: var(--text-main); font: 12px system-ui, sans-serif; }
+.weather-chart-date { fill: var(--text-muted); font: 11px system-ui, sans-serif; }
+.weather-chart-grid { stroke: var(--border-color); stroke-width: 1; }
+.weather-chart-baseline { stroke: var(--text-muted); stroke-width: 1.5; stroke-dasharray: 6 5; }
+.weather-chart-point { fill: var(--bg-surface); stroke: var(--text-muted); stroke-width: 1.5; }
+.weather-chart-point.selected { fill: var(--primary); stroke: var(--bg-surface); stroke-width: 2; }
+.weather-chart-cursor { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 3 5; opacity: 0.65; }
+.weather-chart-control { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; font-size: 0.85rem; margin-top: 0.75rem; }
+.weather-chart-control input { flex: 1; min-width: 130px; min-height: 32px; accent-color: var(--primary); cursor: pointer; }
+.weather-chart-detail { font-size: 0.85rem; line-height: 1.5; margin-top: 0.5rem; overflow-wrap: anywhere; min-height: 2.55em; }
