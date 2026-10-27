@@ -48,7 +48,7 @@ const WeatherChart = {
     const y = score => center - score * (bottom - top) / 200;
     const scroll = document.createElement('div'); scroll.className = 'weather-chart-scroll'; scroll.tabIndex = 0;
     scroll.setAttribute('role', 'region'); scroll.setAttribute('aria-label', 'Hourly weather graph; scroll horizontally on small screens');
-    const svg = svgNode('svg', { viewBox: `0 0 ${width} ${height}`, class: 'weather-condition-chart', role: 'img', 'aria-label': 'Weather over time. Above zero: hot and sunny. Zero: normal sunny conditions. Below zero: cloudy or rainy. Select an hour below for forecast details.' });
+    const svg = svgNode('svg', { viewBox: `0 0 ${width} ${height}`, class: 'weather-condition-chart', role: 'group', 'aria-label': 'Weather over time. Above zero: hot and sunny. Zero: normal sunny conditions. Below zero: cloudy or rainy. Select a dot for details; use arrow keys to move between hours.' });
     const defs = svgNode('defs');
     const background = svgNode('linearGradient', { id: 'weatherChartBackground', x1: '0', y1: '0', x2: '0', y2: '1' });
     for (const [offset, color, opacity] of [['0%', '#ef4444', '.28'], ['48%', '#ef4444', '0'], ['52%', '#3b82f6', '0'], ['100%', '#3b82f6', '.28']]) background.append(svgNode('stop', { offset, 'stop-color': color, 'stop-opacity': opacity }));
@@ -72,35 +72,46 @@ const WeatherChart = {
     points.forEach((point, i) => {
       if (point.score === null) { connected = false; markers.push(null); return; }
       path += `${connected ? ' L' : ' M'}${x(i).toFixed(2)},${y(point.score).toFixed(2)}`; connected = true;
-      markers.push(svgNode('circle', { cx: x(i), cy: y(point.score), r: 3.5, class: 'weather-chart-point', 'aria-hidden': 'true' }));
+      const dot = svgNode('g', { class: 'weather-chart-dot', role: 'button', tabindex: '-1', 'aria-pressed': 'false' });
+      dot.append(svgNode('circle', { cx: x(i), cy: y(point.score), r: 16, fill: 'transparent', class: 'weather-chart-hit', 'aria-hidden': 'true' }),
+        svgNode('circle', { cx: x(i), cy: y(point.score), r: 4, class: 'weather-chart-point', 'aria-hidden': 'true' }));
+      markers.push(dot);
     });
     svg.append(svgNode('path', { d: path, fill: 'none', stroke: 'url(#weatherChartLine)', 'stroke-width': 3, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
     markers.filter(Boolean).forEach(marker => svg.append(marker));
     const cursor = svgNode('line', { y1: top, y2: bottom, class: 'weather-chart-cursor', 'aria-hidden': 'true' }); svg.append(cursor);
     const detail = document.createElement('p'); detail.className = 'weather-chart-detail'; detail.setAttribute('role', 'status'); detail.setAttribute('aria-live', 'polite');
-    const label = document.createElement('label'); label.className = 'weather-chart-control'; label.textContent = 'Explore an hour';
-    const slider = document.createElement('input'); slider.type = 'range'; slider.min = 0; slider.max = points.length - 1; slider.step = 1; slider.value = 0; slider.setAttribute('aria-label', 'Forecast hour'); label.append(slider);
     let selected = -1;
     const select = index => {
-      if (index === selected) return; selected = index; slider.value = index;
-      markers.forEach((marker, i) => { if (marker) { marker.classList.toggle('selected', i === index); marker.setAttribute('r', i === index ? 6 : 3.5); } });
+      if (index === selected) return; selected = index;
+      markers.forEach((marker, i) => { if (marker) {
+        marker.classList.toggle('selected', i === index); marker.setAttribute('tabindex', i === index ? '0' : '-1'); marker.setAttribute('aria-pressed', String(i === index));
+        marker.querySelector('.weather-chart-point').setAttribute('r', i === index ? 6 : 4);
+      } });
       cursor.setAttribute('x1', x(index)); cursor.setAttribute('x2', x(index));
-      const point = points[index];
+      detail.textContent = describe(points[index]);
+    };
+    const describe = point => {
       const number = (value, suffix) => typeof value === 'number' && Number.isFinite(value) ? `${Math.round(value)}${suffix}` : 'unavailable';
       const condition = point.code === 0 && point.isDay === false ? 'Clear night' : conditionLabel(point.code);
-      const text = `${point.time.replace('T', ' ')} · ${condition} · ${number(point.temperature, '°C')} · Rain chance ${number(point.rain, '%')}${point.score === null ? ' · Graph value unavailable' : ''}`;
-      detail.textContent = text; slider.setAttribute('aria-valuetext', text);
+      return `${point.time.replace('T', ' ')} · ${condition} · ${number(point.temperature, '°C')} · Rain chance ${number(point.rain, '%')}`;
     };
-    slider.addEventListener('input', () => select(Number(slider.value)));
-    const selectAtPointer = event => {
-      const bounds = svg.getBoundingClientRect();
-      const position = (event.clientX - bounds.left) * width / bounds.width;
-      const index = Math.round((position - left) / plotWidth * (points.length - 1));
-      select(Math.max(0, Math.min(points.length - 1, index)));
-    };
-    svg.addEventListener('pointermove', event => { if (event.pointerType === 'mouse') selectAtPointer(event); });
-    svg.addEventListener('click', selectAtPointer);
-    scroll.append(svg); target.append(scroll, label, detail); select(0);
+    const available = markers.map((marker, i) => marker ? i : -1).filter(i => i >= 0);
+    markers.forEach((marker, i) => {
+      if (!marker) return;
+      marker.setAttribute('aria-label', describe(points[i])); marker.append(svgNode('title', {}, describe(points[i])));
+      marker.addEventListener('click', () => { select(i); marker.focus({ preventScroll: true }); });
+      marker.addEventListener('keydown', event => {
+        let next = i; const position = available.indexOf(i);
+        if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = available[Math.min(available.length - 1, position + 1)];
+        else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = available[Math.max(0, position - 1)];
+        else if (event.key === 'Home') next = available[0];
+        else if (event.key === 'End') next = available.at(-1);
+        else if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault(); select(next); markers[next].focus({ preventScroll: true }); markers[next].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      });
+    });
+    scroll.append(svg); target.append(scroll, detail); select(available[0]);
   }
 };
 if (typeof module === 'object' && module.exports) module.exports = WeatherChart;

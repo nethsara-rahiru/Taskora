@@ -85,6 +85,14 @@ const WeatherPage = {
     if ([95, 96, 99].includes(code)) return '⛈ Thunderstorm';
     return 'Conditions unavailable';
   },
+  conditionTone(code, high) {
+    if ([95, 96, 99].includes(code)) return 'storm';
+    if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return 'rain';
+    if ([71, 73, 75, 77, 85, 86].includes(code)) return 'snow';
+    if ([2, 3, 45, 48].includes(code)) return 'cloud';
+    if ([0, 1].includes(code)) return Number.isFinite(high) && high > 32 ? 'hot' : 'sun';
+    return 'unknown';
+  },
   number(value, unit = '') { return typeof value === 'number' && Number.isFinite(value) ? `${Math.round(value)}${unit}` : '—'; },
   render(data, location) {
     const current = data.current;
@@ -99,14 +107,9 @@ const WeatherPage = {
     }
     overview.append(metrics);
     WeatherChart.render(document.getElementById('weatherConditionGraph'), data, code => this.condition(code));
-    const hourly = document.getElementById('weatherHourly'); hourly.replaceChildren();
-    data.hourly.time.map((time, index) => ({ time, index })).filter(item => item.time >= current.time).slice(0, 12).forEach(({time, index}) => {
-      const card = this.element('div', 'weather-hour');
-      card.append(this.element('strong', '', `${time.slice(5, 10)} ${time.slice(11, 16)}`), this.element('span', '', this.condition(data.hourly.weather_code[index])), this.element('span', '', this.number(data.hourly.temperature_2m[index], '°C')), this.element('span', 'ai-help', `${this.number(data.hourly.precipitation_probability[index], '%')} rain`)); hourly.append(card);
-    });
     const daily = document.getElementById('weatherDaily'); daily.replaceChildren();
     data.daily.time.forEach((date, index) => {
-      const card = this.element('div', 'weather-day');
+      const card = this.element('div', `weather-day weather-day-${this.conditionTone(data.daily.weather_code[index], data.daily.temperature_2m_max[index])}`);
       const day = new Date(`${date}T12:00:00Z`).toLocaleDateString([], { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' });
       card.append(this.element('strong', '', day), this.element('span', '', this.condition(data.daily.weather_code[index])), this.element('span', '', `${this.number(data.daily.temperature_2m_min[index], '°')} / ${this.number(data.daily.temperature_2m_max[index], '°C')}`), this.element('span', 'ai-help', `${this.number(data.daily.precipitation_probability_max[index], '%')} rain`)); daily.append(card);
     });
