@@ -44,24 +44,25 @@
       <main class="page-container ai-page weather-page">
         <section class="ai-panel" aria-labelledby="weatherHeading">
           <h1 id="weatherHeading">Weather</h1>
-          <p class="ai-help">Plan outdoor work and travel around the forecast. Choose a city or use your device location. <a href="/settings.html#locationSettings">Save a default location for AI planning in Settings.</a></p>
-          <form id="weatherSearchForm" class="weather-search">
-            <div class="form-group"><label for="weatherCity" class="form-label">City</label><input id="weatherCity" class="form-control" type="search" minlength="2" maxlength="100" placeholder="e.g. Colombo" required></div>
-            <button class="btn btn-primary" type="submit">Find city</button>
-            <button class="btn btn-secondary" id="weatherLocate" type="button">Use my location</button>
-          </form>
-          <p id="weatherStatus" class="ai-help" role="status" aria-live="polite">Choose a location to see the weather.</p>
-          <div id="weatherLocations" class="weather-locations" aria-label="Matching cities"></div>
+          <p class="ai-help">Weather for the location saved in your account.</p>
+          <div class="ai-actions"><a href="/settings.html#locationSettings" class="btn btn-secondary btn-sm">Location settings</a><button type="button" class="btn btn-secondary btn-sm" id="weatherRefresh" disabled>Refresh weather</button></div>
+          <p id="weatherStatus" class="ai-help" role="status" aria-live="polite">Loading your saved location…</p>
         </section>
         <section class="ai-panel" id="weatherForecastPanel" aria-label="Weather forecast" hidden>
-          <div class="day-weather-heading"><div><h2 id="weatherLocationName"></h2><p id="weatherUpdated" class="ai-help"></p></div><button type="button" class="btn btn-secondary btn-sm" id="weatherRefresh">Refresh weather</button></div>
+          <div class="day-weather-heading"><div><h2 id="weatherLocationName"></h2><p id="weatherUpdated" class="ai-help"></p></div></div>
           <div id="weatherCurrent" class="weather-current"></div>
           <section class="weather-chart-section" aria-labelledby="weatherChartHeading">
             <h3 id="weatherChartHeading">Weather timeline · next 24 hours</h3>
             <p class="ai-help">Hot, sunny hours rise into red; clouds and rain dip into blue. The center line represents normal sunny conditions. Day and night bands follow the location’s sunrise and sunset. Click or tap a dot to see the weather for that hour. This is a relative condition scale, not a temperature scale.</p>
             <div id="weatherConditionGraph"></div>
           </section>
-          <h3>7-day forecast</h3><div id="weatherDaily" class="weather-days"></div>
+          <section class="weather-showcase" aria-labelledby="weatherDailyHeading">
+            <div class="day-weather-heading"><div><h3 id="weatherDailyHeading">7-day forecast</h3><p class="ai-help">Swipe left to see the next days.</p></div>
+              <div class="weather-carousel-actions"><button type="button" id="weatherDaysPrevious" class="btn btn-secondary btn-sm" aria-label="Previous forecast days" aria-controls="weatherDaily">←</button><button type="button" id="weatherDaysNext" class="btn btn-secondary btn-sm" aria-label="Next forecast days" aria-controls="weatherDaily">→</button></div>
+            </div>
+            <div id="weatherDaily" class="weather-days" tabindex="0" role="region" aria-roledescription="carousel" aria-label="Seven-day forecast"></div>
+            <p id="weatherDaysPosition" class="ai-help weather-carousel-position" aria-live="polite"></p>
+          </section>
           <p class="ai-help">Forecasts can change. Temperatures in °C, wind in km/h, rain chance in %. Updates every 15 minutes while this page is visible.</p>
           <p class="ai-help">Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a> · Location search by <a href="https://www.geonames.org/" target="_blank" rel="noopener noreferrer">GeoNames</a>.</p>
         </section>

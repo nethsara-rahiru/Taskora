@@ -6,19 +6,17 @@ const WeatherPage = {
   element(tag, className, text) {
     const element = document.createElement(tag); element.className = className || ''; if (text !== undefined) element.textContent = text; return element;
   },
-  storageKey() { return `weather-location:${Auth.currentUser._id}`; },
   validLocation(value) { return value && typeof value.name === 'string' && Number.isFinite(value.latitude) && Math.abs(value.latitude) <= 90 && Number.isFinite(value.longitude) && Math.abs(value.longitude) <= 180; },
   init() {
     if (this.initialized || !Auth.currentUser) return;
     this.initialized = true;
     this.status = document.getElementById('weatherStatus');
-    this.results = document.getElementById('weatherLocations');
     this.refresh = document.getElementById('weatherRefresh');
-    LoadingUI.bindForm(document.getElementById('weatherSearchForm'), () => this.search());
-    LoadingUI.bindAction(document.getElementById('weatherLocate'), () => this.locate());
     LoadingUI.bindAction(this.refresh, () => this.update());
-    const saved = Auth.currentUser.weatherLocation || StorageManager.get(this.storageKey());
-    if (this.validLocation(saved)) { this.location = saved; LoadingUI.run(this.refresh, () => this.update()); }
+    this.initCarousel();
+    const saved = Auth.currentUser.weatherLocation;
+    if (this.validLocation(saved)) { this.refresh.disabled = false; this.location = saved; LoadingUI.run(this.refresh, () => this.update()); }
+    else this.status.textContent = 'Save a location in Settings to see your forecast.';
     const refreshIfDue = () => {
       if (document.visibilityState === 'visible' && this.location && !this.loading && Date.now() - this.lastAttempt > 15 * 60000) {
         LoadingUI.run(this.refresh, () => this.update());
@@ -27,36 +25,32 @@ const WeatherPage = {
     this.timer = setInterval(refreshIfDue, 60000);
     document.addEventListener('visibilitychange', refreshIfDue);
   },
-  async search() {
-    this.status.textContent = 'Searching cities…'; this.results.replaceChildren();
-    try {
-      const data = await API.get(`/weather/locations?q=${encodeURIComponent(document.getElementById('weatherCity').value.trim())}`);
-      if (!data.locations.length) { this.status.textContent = 'No cities found. Try a nearby city or a different spelling.'; return; }
-      this.status.textContent = 'Choose a location:';
-      data.locations.forEach(city => {
-        const name = [city.name, city.region, city.country].filter(Boolean).join(', ');
-        const button = this.element('button', 'btn btn-secondary', name); button.type = 'button';
-        LoadingUI.bindAction(button, () => this.choose({ name, latitude: city.latitude, longitude: city.longitude }));
-        this.results.append(button);
-      });
-    } catch (error) { this.status.textContent = error.message || 'City search failed. Please try again.'; }
+  initCarousel() {
+    const daily = document.getElementById('weatherDaily');
+    this.previous = document.getElementById('weatherDaysPrevious'); this.next = document.getElementById('weatherDaysNext');
+    this.previous.addEventListener('click', () => this.moveDays(-1)); this.next.addEventListener('click', () => this.moveDays(1));
+    daily.addEventListener('scroll', () => this.updateCarousel(), { passive: true });
+    daily.addEventListener('keydown', event => {
+      if (event.target !== daily || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+      event.preventDefault(); this.moveDays(event.key === 'ArrowRight' ? 1 : -1);
+    });
+    window.addEventListener('resize', () => this.updateCarousel());
   },
-  async choose(location) {
-    if (this.loading || !this.validLocation(location)) return;
-    const previous = this.location;
-    this.location = location;
-    const success = await LoadingUI.run(this.refresh, () => this.update());
-    if (success) { StorageManager.save(this.storageKey(), location); this.results.replaceChildren(); }
-    else this.location = previous;
+  moveDays(direction) {
+    const daily = document.getElementById('weatherDaily'), card = daily.firstElementChild;
+    if (!card) return;
+    const step = card.getBoundingClientRect().width + parseFloat(getComputedStyle(daily).gap || 0);
+    daily.scrollBy({ left: direction * step, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   },
-  async locate() {
-    if (!navigator.geolocation) { this.status.textContent = 'Device location is unavailable. Search for a city instead.'; return; }
-    if (this.loading) return;
-    this.status.textContent = 'Waiting for your location permission…';
-    try {
-      const position = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000, maximumAge: 300000, enableHighAccuracy: false }));
-      await this.choose({ name: 'My location', latitude: position.coords.latitude, longitude: position.coords.longitude });
-    } catch (_) { this.status.textContent = 'Could not access your location. Allow location access or search for a city.'; }
+  updateCarousel() {
+    const daily = document.getElementById('weatherDaily'), count = daily.children.length;
+    if (!count || !daily.clientWidth) return;
+    const step = daily.firstElementChild.getBoundingClientRect().width + parseFloat(getComputedStyle(daily).gap || 0);
+    const first = Math.min(count, Math.floor((daily.scrollLeft + 2) / step) + 1);
+    const last = Math.min(count, Math.ceil((daily.scrollLeft + daily.clientWidth - 2) / step));
+    this.previous.disabled = daily.scrollLeft <= 2;
+    this.next.disabled = daily.scrollLeft >= daily.scrollWidth - daily.clientWidth - 2;
+    document.getElementById('weatherDaysPosition').textContent = `${first === last ? first : `${first}–${last}`} of ${count} days`;
   },
   async update() {
     if (!this.location || this.loading) return false;
@@ -70,7 +64,7 @@ const WeatherPage = {
       this.status.textContent = navigator.onLine ? 'Weather updated.' : 'Offline — showing previously downloaded weather. Check its update time.';
       return true;
     } catch (error) {
-      this.status.textContent = `${error.message || 'Weather is unavailable.'} Try again using Refresh weather or select a city.${panel.hidden ? '' : ' Previous weather is still shown; check its update time.'}`;
+      this.status.textContent = `${error.message || 'Weather is unavailable.'} Try Refresh weather, or check your saved location in Settings.${panel.hidden ? '' : ' Previous weather is still shown; check its update time.'}`;
       return false;
     } finally { this.loading = false; this.status.classList.remove('loading-text'); panel.removeAttribute('aria-busy'); }
   },
@@ -107,13 +101,23 @@ const WeatherPage = {
     }
     overview.append(metrics);
     WeatherChart.render(document.getElementById('weatherConditionGraph'), data, code => this.condition(code));
-    const daily = document.getElementById('weatherDaily'); daily.replaceChildren();
+    const daily = document.getElementById('weatherDaily'), priorScroll = daily.scrollLeft; daily.replaceChildren();
     data.daily.time.forEach((date, index) => {
-      const card = this.element('div', `weather-day weather-day-${this.conditionTone(data.daily.weather_code[index], data.daily.temperature_2m_max[index])}`);
+      const code = data.daily.weather_code[index], tone = this.conditionTone(code, data.daily.temperature_2m_max[index]);
+      const card = this.element('article', `weather-day weather-day-${tone}`);
+      card.setAttribute('role', 'group'); card.setAttribute('aria-roledescription', 'slide'); card.setAttribute('aria-label', `Day ${index + 1} of ${data.daily.time.length}`);
       const day = new Date(`${date}T12:00:00Z`).toLocaleDateString([], { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' });
-      card.append(this.element('strong', '', day), this.element('span', '', this.condition(data.daily.weather_code[index])), this.element('span', '', `${this.number(data.daily.temperature_2m_min[index], '°')} / ${this.number(data.daily.temperature_2m_max[index], '°C')}`), this.element('span', 'ai-help', `${this.number(data.daily.precipitation_probability_max[index], '%')} rain`)); daily.append(card);
+      const icon = this.element('span', 'weather-day-icon', { sun: '☀️', hot: '☀️', cloud: '☁️', rain: '🌧️', storm: '⛈️', snow: '❄️', unknown: '◌' }[tone]); icon.setAttribute('aria-hidden', 'true');
+      const condition = this.condition(code);
+      card.append(this.element('strong', 'weather-day-date', `${date === data.current.time.slice(0, 10) ? 'Today · ' : ''}${day}`), icon,
+        this.element('span', 'weather-day-condition', tone === 'unknown' ? condition : condition.split(' ').slice(1).join(' ')),
+        this.element('strong', 'weather-day-high', this.number(data.daily.temperature_2m_max[index], '°C')),
+        this.element('span', 'ai-help', `Low ${this.number(data.daily.temperature_2m_min[index], '°C')}`),
+        this.element('span', 'weather-day-rain-chance', `Rain chance ${this.number(data.daily.precipitation_probability_max[index], '%')}`));
+      daily.append(card);
     });
     document.getElementById('weatherForecastPanel').hidden = false;
+    daily.scrollLeft = priorScroll; this.updateCarousel();
   }
 };
 window.WeatherPage = WeatherPage;
