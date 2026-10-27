@@ -91,3 +91,5 @@ The Weather page includes an interactive 24-hour condition graph. Time runs alon
 This is an illustrative relative condition scale, not a physical weather measurement or a temperature axis. Clear daytime hours at or below 28°C sit at zero; heat above 28°C raises the line, while cloud and precipitation codes lower it. Nighttime clear skies stay neutral, and missing/unknown condition codes leave gaps rather than invented values. The graph uses up to 25 hourly samples from the current hour, covering 24 hours. Run its tests with `node --test server/tests/weather-chart.test.js`.
 
 Seven-day cards use condition colors: yellow for sun, orange for hot sunny days, gray for clouds/fog, blue for rain, purple for storms and cyan for snow. The condition labels remain visible in light and dark themes.
+
+The timeline also marks day and night with sun/moon bands and subtle night shading. Sunrise and sunset boundaries use forecast-local times, including partial hours and midnight crossings. Selected dots announce daytime/nighttime. If sunrise/sunset is unavailable (including polar conditions), provider daylight flags are used; missing daylight information stays unknown.

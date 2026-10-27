@@ -792,3 +792,11 @@ button[aria-busy="true"], button[disabled].is-loading { cursor: progress; }
 .weather-day-rain { --weather-tone: #3b82f6; }
 .weather-day-storm { --weather-tone: #a78bfa; }
 .weather-day-snow { --weather-tone: #22d3ee; }
+
+.weather-chart-period-day { fill: #fbbf2440; }
+.weather-chart-period-night { fill: #818cf840; }
+.weather-chart-period-unknown { fill: var(--border-color); }
+.weather-chart-period-label { fill: var(--text-main); font: 11px system-ui, sans-serif; }
+.weather-chart-night-shade { fill: #33415514; }
+[data-theme="dark"] .weather-chart-night-shade { fill: #02061738; }
+.weather-chart-daylight-edge { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 2 5; opacity: 0.45; }

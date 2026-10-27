@@ -35,3 +35,25 @@ test('older forecasts use sunrise and sunset and missing codes leave graph gaps'
   assert(result[0].score > 0); assert.equal(result[1].score, 0); assert.equal(result[2].score, null);
   assert.deepEqual(chart.series({}), []);
 });
+
+test('day/night bands use exact local sunrise and sunset across midnight', () => {
+  const times = Array.from({ length: 25 }, (_, i) => new Date(Date.UTC(2026, 9, 27, 14 + i)).toISOString().slice(0, 16));
+  const data = { daily: { time: ['2026-10-27', '2026-10-28'], sunrise: ['2026-10-27T06:15', '2026-10-28T06:15'], sunset: ['2026-10-27T18:30', '2026-10-28T18:30'] } };
+  const bands = chart.daylightBands(data, times.map(time => ({ time, isDay: null })));
+  assert.deepEqual(bands.map(band => band.isDay), [true, false, true]);
+  assert.equal(bands[0].start, 0); assert.equal(bands[0].end, 4.5 / 24);
+  assert.equal(bands[1].end, 16.25 / 24); assert.equal(bands[2].end, 1);
+});
+test('day/night bands fall back to provider flags and do not invent unknown daylight', () => {
+  const points = [{ time: '2026-10-27T17:00', isDay: true }, { time: '2026-10-27T18:00', isDay: false }, { time: '2026-10-27T19:00', isDay: false }];
+  assert.deepEqual(chart.daylightBands({}, points).map(band => band.isDay), [true, false]);
+  assert.equal(chart.daylightBands({}, [{ time: '2026-10-27T17:00', isDay: null }])[0].isDay, null);
+  assert.deepEqual(chart.daylightBands({}, []), []);
+});
+
+test('dot day/night details agree with exact sunrise/sunset bands at partial hours', () => {
+  const points = chart.series({ current: { time: '2026-10-27T18:00' },
+    daily: { time: ['2026-10-27'], sunrise: ['2026-10-27T06:15'], sunset: ['2026-10-27T18:30'] },
+    hourly: { time: ['2026-10-27T18:00', '2026-10-27T19:00'], weather_code: [0, 0], temperature_2m: [32, 32], is_day: [0, 0] } });
+  assert.equal(points[0].isDay, true); assert.equal(points[1].isDay, false);
+});

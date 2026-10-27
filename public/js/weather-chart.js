@@ -23,12 +23,42 @@ const WeatherChart = {
     return data.hourly.time.map((time, index) => ({ time, index })).filter(item => typeof item.time === 'string' && item.time >= start).slice(0, 25).map(({time, index}) => {
       const code = data.hourly.weather_code?.[index], temperature = data.hourly.temperature_2m?.[index];
       let isDay = data.hourly.is_day?.[index] === 1 ? true : data.hourly.is_day?.[index] === 0 ? false : null;
-      // Older cached forecasts may lack is_day. Use sunrise/sunset if available.
+      // Prefer exact local sunrise/sunset; provider flags cover missing or polar data.
       const dateIndex = data.daily?.time?.indexOf(time.slice(0, 10)) ?? -1;
       const sunrise = data.daily?.sunrise?.[dateIndex], sunset = data.daily?.sunset?.[dateIndex];
-      if (isDay === null && typeof sunrise === 'string' && typeof sunset === 'string') isDay = time >= sunrise && time < sunset;
+      if (typeof sunrise === 'string' && typeof sunset === 'string' && sunset > sunrise) isDay = time >= sunrise && time < sunset;
       return { time, code, temperature, isDay, rain: data.hourly.precipitation_probability?.[index], score: this.score(code, temperature, isDay) };
     });
+  },
+  daylightBands(data, points) {
+    if (!points.length) return [];
+    // Forecast timestamps are wall-clock labels in the location's timezone.
+    // Treat them consistently as coordinates, independent of the browser timezone.
+    const stamp = value => typeof value === 'string' ? Date.parse(`${value}Z`) : NaN;
+    const start = stamp(points[0].time), end = stamp(points.at(-1).time);
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return [];
+    if (start === end) return [{ start: 0, end: 1, isDay: points[0].isDay }];
+    const boundaries = new Set([start, end]);
+    points.forEach(point => boundaries.add(stamp(point.time)));
+    for (const value of [...(data.daily?.sunrise || []), ...(data.daily?.sunset || [])]) {
+      const time = stamp(value); if (time > start && time < end) boundaries.add(time);
+    }
+    const times = [...boundaries].filter(Number.isFinite).sort((a, b) => a - b);
+    const bands = [];
+    for (let i = 0; i < times.length - 1; i++) {
+      const middle = (times[i] + times[i + 1]) / 2;
+      const date = new Date(middle).toISOString().slice(0, 10);
+      const day = data.daily?.time?.indexOf(date) ?? -1;
+      const sunrise = stamp(data.daily?.sunrise?.[day]), sunset = stamp(data.daily?.sunset?.[day]);
+      const sample = points.filter(point => stamp(point.time) <= middle).at(-1);
+      const isDay = Number.isFinite(sunrise) && Number.isFinite(sunset) && sunset > sunrise
+        ? middle >= sunrise && middle < sunset : sample?.isDay ?? null;
+      const from = (times[i] - start) / (end - start), to = (times[i + 1] - start) / (end - start);
+      const last = bands.at(-1);
+      if (last && last.isDay === isDay) last.end = to;
+      else bands.push({ start: from, end: to, isDay });
+    }
+    return bands;
   },
   render(target, data, conditionLabel) {
     target.replaceChildren();
@@ -48,13 +78,23 @@ const WeatherChart = {
     const y = score => center - score * (bottom - top) / 200;
     const scroll = document.createElement('div'); scroll.className = 'weather-chart-scroll'; scroll.tabIndex = 0;
     scroll.setAttribute('role', 'region'); scroll.setAttribute('aria-label', 'Hourly weather graph; scroll horizontally on small screens');
-    const svg = svgNode('svg', { viewBox: `0 0 ${width} ${height}`, class: 'weather-condition-chart', role: 'group', 'aria-label': 'Weather over time. Above zero: hot and sunny. Zero: normal sunny conditions. Below zero: cloudy or rainy. Select a dot for details; use arrow keys to move between hours.' });
+    const svg = svgNode('svg', { viewBox: `0 0 ${width} ${height}`, class: 'weather-condition-chart', role: 'group', 'aria-label': 'Weather over time. Above zero: hot and sunny. Zero: normal sunny conditions. Below zero: cloudy or rainy. Day and night are marked above the time axis. Select a dot for details; use arrow keys to move between hours.' });
     const defs = svgNode('defs');
     const background = svgNode('linearGradient', { id: 'weatherChartBackground', x1: '0', y1: '0', x2: '0', y2: '1' });
     for (const [offset, color, opacity] of [['0%', '#ef4444', '.28'], ['48%', '#ef4444', '0'], ['52%', '#3b82f6', '0'], ['100%', '#3b82f6', '.28']]) background.append(svgNode('stop', { offset, 'stop-color': color, 'stop-opacity': opacity }));
     const lineGradient = svgNode('linearGradient', { id: 'weatherChartLine', gradientUnits: 'userSpaceOnUse', x1: '0', y1: top, x2: '0', y2: bottom });
     for (const [offset, color] of [['0%', '#ef4444'], ['50%', '#d39a19'], ['100%', '#3b82f6']]) lineGradient.append(svgNode('stop', { offset, 'stop-color': color }));
     defs.append(background, lineGradient); svg.append(defs, svgNode('rect', { x: left, y: top, width: plotWidth, height: bottom - top, rx: 12, fill: 'url(#weatherChartBackground)' }));
+    const daylight = svgNode('g', { class: 'weather-chart-daylight', 'aria-hidden': 'true', 'pointer-events': 'none' });
+    for (const band of this.daylightBands(data, points)) {
+      const from = left + band.start * plotWidth, span = (band.end - band.start) * plotWidth;
+      const period = band.isDay === true ? 'day' : band.isDay === false ? 'night' : 'unknown';
+      if (period === 'night') daylight.append(svgNode('rect', { x: from, y: top, width: span, height: bottom - top, class: 'weather-chart-night-shade' }));
+      daylight.append(svgNode('rect', { x: from, y: 5, width: span, height: 19, class: `weather-chart-period weather-chart-period-${period}`, 'data-period': period }));
+      if (span > 65) daylight.append(svgNode('text', { x: from + span / 2, y: 19, 'text-anchor': 'middle', class: 'weather-chart-period-label' }, period === 'day' ? '☀ Day' : period === 'night' ? '☾ Night' : 'Daylight unknown'));
+      if (band.start > 0) daylight.append(svgNode('line', { x1: from, x2: from, y1: top, y2: bottom, class: 'weather-chart-daylight-edge' }));
+    }
+    svg.append(daylight);
     for (const value of [100, 50, 0, -50, -100]) {
       svg.append(svgNode('line', { x1: left, x2: width - right, y1: y(value), y2: y(value), class: value === 0 ? 'weather-chart-baseline' : 'weather-chart-grid' }));
     }
@@ -94,7 +134,7 @@ const WeatherChart = {
     const describe = point => {
       const number = (value, suffix) => typeof value === 'number' && Number.isFinite(value) ? `${Math.round(value)}${suffix}` : 'unavailable';
       const condition = point.code === 0 && point.isDay === false ? 'Clear night' : conditionLabel(point.code);
-      return `${point.time.replace('T', ' ')} · ${condition} · ${number(point.temperature, '°C')} · Rain chance ${number(point.rain, '%')}`;
+      return `${point.time.replace('T', ' ')} · ${point.isDay === true ? 'Daytime' : point.isDay === false ? 'Nighttime' : 'Daylight unknown'} · ${condition} · ${number(point.temperature, '°C')} · Rain chance ${number(point.rain, '%')}`;
     };
     const available = markers.map((marker, i) => marker ? i : -1).filter(i => i >= 0);
     markers.forEach((marker, i) => {
